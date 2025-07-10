@@ -52,16 +52,20 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				}
+				// Portfolio specific colors
+				'hero-start': 'hsl(var(--hero-gradient-start))',
+				'hero-end': 'hsl(var(--hero-gradient-end))',
+				'section-bg': 'hsl(var(--section-bg))',
+				'skill-bar': 'hsl(var(--skill-bar))',
+				'glow': 'hsl(var(--glow))'
+			},
+			backgroundImage: {
+				'hero-gradient': 'linear-gradient(135deg, hsl(var(--hero-gradient-start)), hsl(var(--hero-gradient-end)))',
+				'section-gradient': 'linear-gradient(180deg, hsl(var(--section-bg)), hsl(var(--background)))',
+			},
+			boxShadow: {
+				'glow': '0 0 30px hsl(var(--glow) / 0.5)',
+				'glow-sm': '0 0 15px hsl(var(--glow) / 0.3)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
