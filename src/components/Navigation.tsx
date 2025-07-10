@@ -3,12 +3,13 @@ import { Menu, X, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Navigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { href: "#about", label: "About" },
+    { href: "#hero", label: "About" },
     { href: "#projects", label: "Projects" },
     { href: "#skills", label: "Skills" },
+    { href: "#technology", label: "Technology" },
     { href: "#education", label: "Education" },
     { href: "#contact", label: "Contact" },
   ];
@@ -17,7 +18,7 @@ const Navigation = () => {
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      setIsMenuOpen(false);
+      setIsOpen(false);
     }
   };
 
@@ -52,16 +53,16 @@ const Navigation = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={() => setIsOpen(!isOpen)}
               className="text-foreground hover:text-secondary"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
             </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        {isMenuOpen && (
+        {isOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-border shadow-lg">
             <div className="px-4 py-2 space-y-1">
               {navItems.map((item) => (
