@@ -2,7 +2,6 @@
 import Navigation from "./Navigation";
 import Hero from "./Hero";
 import Projects from "./Projects";
-import Skills from "./Skills";
 import TechnologyTools from "./TechnologyTools";
 import Education from "./Education";
 import Contact from "./Contact";
@@ -14,7 +13,6 @@ const Portfolio = () => {
       <main>
         <Hero />
         <Projects />
-        <Skills />
         <TechnologyTools />
         <Education />
         <Contact />

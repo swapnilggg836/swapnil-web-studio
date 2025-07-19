@@ -128,6 +128,30 @@ const TechnologyTools = () => {
           technologies: ['Fast Learner', 'Adaptability', 'Critical Thinking', 'Time Management']
         }
       ]
+    },
+    {
+      id: 'skills',
+      title: 'Programming Skills',
+      icon: Code,
+      color: 'from-teal-500 to-teal-700',
+      subcategories: [
+        {
+          name: 'Programming Languages',
+          technologies: ['Python', 'Java', 'C++', 'JavaScript', 'PHP', 'C']
+        },
+        {
+          name: 'Programming Concepts',
+          technologies: ['OOP (Object-Oriented Programming)', 'Data Structures', 'Algorithms', 'Design Patterns']
+        },
+        {
+          name: 'Database Management',
+          technologies: ['MySQL', 'MongoDB', 'SQLite', 'Database Design', 'Query Optimization']
+        },
+        {
+          name: 'IoT Projects',
+          technologies: ['Arduino Programming', 'Sensor Integration', 'Hardware Control', 'Embedded C/C++']
+        }
+      ]
     }
   ];
 
