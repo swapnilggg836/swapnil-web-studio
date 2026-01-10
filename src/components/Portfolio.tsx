@@ -5,6 +5,7 @@ import Projects from "./Projects";
 import TechnologyTools from "./TechnologyTools";
 import Education from "./Education";
 import Contact from "./Contact";
+import Footer from "./Footer";
 
 const Portfolio = () => {
   return (
@@ -17,15 +18,7 @@ const Portfolio = () => {
         <Education />
         <Contact />
       </main>
-      
-      {/* Footer */}
-      <footer className="bg-primary text-primary-foreground py-6">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm">
-            © Created by Swapnil Gaikwad
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
