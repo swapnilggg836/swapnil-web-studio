@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects, Project } from "@/hooks/useProjects";
+import { useResume } from "@/hooks/useResume";
+import { useTechnology, TechnologyCategory, Subcategory } from "@/hooks/useTechnology";
+import { useEducation, Education } from "@/hooks/useEducation";
+import { useExperience, Experience } from "@/hooks/useExperience";
+import { useProfileInfo } from "@/hooks/useProfileInfo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,29 +31,75 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FolderPlus, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const { projects, loading: projectsLoading, addProject, updateProject, deleteProject, uploadImage } = useProjects();
+  const { resume, loading: resumeLoading, uploadResume, saveResume, deleteResume } = useResume();
+  const { categories, loading: techLoading, addCategory, updateCategory, deleteCategory } = useTechnology();
+  const { education, loading: eduLoading, addEducation, updateEducation, deleteEducation } = useEducation();
+  const { experiences, loading: expLoading, addExperience, updateExperience, deleteExperience } = useExperience();
+  const { profileInfo, loading: profileLoading, uploadProfileImage, saveProfileInfo } = useProfileInfo();
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "add" | "manage">("dashboard");
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [formLoading, setFormLoading] = useState(false);
 
-  // Form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [githubLink, setGithubLink] = useState("");
-  const [liveLink, setLiveLink] = useState("");
-  const [displayOrder, setDisplayOrder] = useState(0);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Project form state
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectTechStack, setProjectTechStack] = useState("");
+  const [projectGithub, setProjectGithub] = useState("");
+  const [projectLive, setProjectLive] = useState("");
+  const [projectOrder, setProjectOrder] = useState(0);
+  const [projectImage, setProjectImage] = useState<File | null>(null);
+  const [projectImagePreview, setProjectImagePreview] = useState<string | null>(null);
+
+  // Education form state
+  const [editingEducation, setEditingEducation] = useState<Education | null>(null);
+  const [eduDialogOpen, setEduDialogOpen] = useState(false);
+  const [eduYear, setEduYear] = useState("");
+  const [eduInstitution, setEduInstitution] = useState("");
+  const [eduLocation, setEduLocation] = useState("");
+  const [eduDegree, setEduDegree] = useState("");
+  const [eduPeriod, setEduPeriod] = useState("");
+  const [eduOrder, setEduOrder] = useState(0);
+
+  // Experience form state
+  const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
+  const [expDialogOpen, setExpDialogOpen] = useState(false);
+  const [expTitle, setExpTitle] = useState("");
+  const [expCompany, setExpCompany] = useState("");
+  const [expLocation, setExpLocation] = useState("");
+  const [expPeriod, setExpPeriod] = useState("");
+  const [expDescription, setExpDescription] = useState("");
+  const [expOrder, setExpOrder] = useState(0);
+
+  // Technology form state
+  const [editingTech, setEditingTech] = useState<TechnologyCategory | null>(null);
+  const [techDialogOpen, setTechDialogOpen] = useState(false);
+  const [techTitle, setTechTitle] = useState("");
+  const [techIcon, setTechIcon] = useState("Code");
+  const [techColor, setTechColor] = useState("from-blue-500 to-blue-700");
+  const [techSubcategories, setTechSubcategories] = useState("");
+  const [techOrder, setTechOrder] = useState(0);
+
+  // Profile form state
+  const [profileName, setProfileName] = useState("");
+  const [profileTitle, setProfileTitle] = useState("");
+  const [profileDescription, setProfileDescription] = useState("");
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+
+  // Resume state
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -56,46 +107,95 @@ const AdminDashboard = () => {
     }
   }, [isAdmin, authLoading, navigate]);
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setTechStack("");
-    setGithubLink("");
-    setLiveLink("");
-    setDisplayOrder(0);
-    setImageFile(null);
-    setImagePreview(null);
+  useEffect(() => {
+    if (profileInfo) {
+      setProfileName(profileInfo.name);
+      setProfileTitle(profileInfo.title);
+      setProfileDescription(profileInfo.description);
+      setProfileImagePreview(profileInfo.profile_image_url);
+    }
+  }, [profileInfo]);
+
+  // Reset functions
+  const resetProjectForm = () => {
+    setProjectTitle("");
+    setProjectDescription("");
+    setProjectTechStack("");
+    setProjectGithub("");
+    setProjectLive("");
+    setProjectOrder(0);
+    setProjectImage(null);
+    setProjectImagePreview(null);
     setEditingProject(null);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resetEducationForm = () => {
+    setEduYear("");
+    setEduInstitution("");
+    setEduLocation("");
+    setEduDegree("");
+    setEduPeriod("");
+    setEduOrder(0);
+    setEditingEducation(null);
+  };
+
+  const resetExperienceForm = () => {
+    setExpTitle("");
+    setExpCompany("");
+    setExpLocation("");
+    setExpPeriod("");
+    setExpDescription("");
+    setExpOrder(0);
+    setEditingExperience(null);
+  };
+
+  const resetTechForm = () => {
+    setTechTitle("");
+    setTechIcon("Code");
+    setTechColor("from-blue-500 to-blue-700");
+    setTechSubcategories("");
+    setTechOrder(0);
+    setEditingTech(null);
+  };
+
+  // Handle functions
+  const handleProjectImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setProjectImage(file);
       const reader = new FileReader();
-      reader.onload = () => setImagePreview(reader.result as string);
+      reader.onload = () => setProjectImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onload = () => setProfileImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
 
     try {
       let imageUrl = editingProject?.image_url || null;
-      
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      if (projectImage) {
+        imageUrl = await uploadImage(projectImage);
       }
 
       const projectData = {
-        title,
-        description: description.split("\n").filter(line => line.trim()),
-        tech_stack: techStack,
-        github_link: githubLink || null,
-        live_link: liveLink || null,
-        display_order: displayOrder,
+        title: projectTitle,
+        description: projectDescription.split("\n").filter(line => line.trim()),
+        tech_stack: projectTechStack,
+        github_link: projectGithub || null,
+        live_link: projectLive || null,
+        display_order: projectOrder,
         image_url: imageUrl,
       };
 
@@ -105,34 +205,191 @@ const AdminDashboard = () => {
         await addProject(projectData);
       }
 
-      resetForm();
-      setActiveTab("manage");
-      setIsDialogOpen(false);
+      resetProjectForm();
+      setProjectDialogOpen(false);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleEdit = (project: Project) => {
-    setEditingProject(project);
-    setTitle(project.title);
-    setDescription(project.description.join("\n"));
-    setTechStack(project.tech_stack);
-    setGithubLink(project.github_link || "");
-    setLiveLink(project.live_link || "");
-    setDisplayOrder(project.display_order);
-    setImagePreview(project.image_url);
-    setIsDialogOpen(true);
+  const handleEducationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    try {
+      const eduData = {
+        year: eduYear,
+        institution: eduInstitution,
+        location: eduLocation,
+        degree: eduDegree,
+        period: eduPeriod,
+        display_order: eduOrder,
+      };
+
+      if (editingEducation) {
+        await updateEducation(editingEducation.id, eduData);
+      } else {
+        await addEducation(eduData);
+      }
+
+      resetEducationForm();
+      setEduDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteProject(id);
+  const handleExperienceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    try {
+      const expData = {
+        title: expTitle,
+        company: expCompany,
+        location: expLocation,
+        period: expPeriod,
+        description: expDescription.split("\n").filter(line => line.trim()),
+        display_order: expOrder,
+      };
+
+      if (editingExperience) {
+        await updateExperience(editingExperience.id, expData);
+      } else {
+        await addExperience(expData);
+      }
+
+      resetExperienceForm();
+      setExpDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleTechSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    try {
+      // Parse subcategories from text format
+      const subcats: Subcategory[] = techSubcategories.split("\n\n").filter(s => s.trim()).map(block => {
+        const lines = block.split("\n");
+        const name = lines[0]?.replace(":", "").trim() || "";
+        const technologies = lines.slice(1).map(t => t.trim()).filter(t => t);
+        return { name, technologies };
+      });
+
+      const techData = {
+        title: techTitle,
+        icon: techIcon,
+        color: techColor,
+        subcategories: subcats,
+        display_order: techOrder,
+      };
+
+      if (editingTech) {
+        await updateCategory(editingTech.id, techData);
+      } else {
+        await addCategory(techData);
+      }
+
+      resetTechForm();
+      setTechDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    try {
+      let imageUrl = profileInfo?.profile_image_url || null;
+      if (profileImage) {
+        imageUrl = await uploadProfileImage(profileImage);
+      }
+
+      await saveProfileInfo({
+        profile_image_url: imageUrl,
+        name: profileName,
+        title: profileTitle,
+        description: profileDescription,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleResumeUpload = async () => {
+    if (!resumeFile) return;
+    setFormLoading(true);
+
+    try {
+      const fileUrl = await uploadResume(resumeFile);
+      if (fileUrl) {
+        await saveResume(fileUrl, resumeFile.name);
+        setResumeFile(null);
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setProjectTitle(project.title);
+    setProjectDescription(project.description.join("\n"));
+    setProjectTechStack(project.tech_stack);
+    setProjectGithub(project.github_link || "");
+    setProjectLive(project.live_link || "");
+    setProjectOrder(project.display_order);
+    setProjectImagePreview(project.image_url);
+    setProjectDialogOpen(true);
+  };
+
+  const handleEditEducation = (edu: Education) => {
+    setEditingEducation(edu);
+    setEduYear(edu.year);
+    setEduInstitution(edu.institution);
+    setEduLocation(edu.location);
+    setEduDegree(edu.degree);
+    setEduPeriod(edu.period);
+    setEduOrder(edu.display_order);
+    setEduDialogOpen(true);
+  };
+
+  const handleEditExperience = (exp: Experience) => {
+    setEditingExperience(exp);
+    setExpTitle(exp.title);
+    setExpCompany(exp.company);
+    setExpLocation(exp.location);
+    setExpPeriod(exp.period);
+    setExpDescription(exp.description.join("\n"));
+    setExpOrder(exp.display_order);
+    setExpDialogOpen(true);
+  };
+
+  const handleEditTech = (tech: TechnologyCategory) => {
+    setEditingTech(tech);
+    setTechTitle(tech.title);
+    setTechIcon(tech.icon);
+    setTechColor(tech.color);
+    setTechSubcategories(tech.subcategories.map(s => `${s.name}:\n${s.technologies.join("\n")}`).join("\n\n"));
+    setTechOrder(tech.display_order);
+    setTechDialogOpen(true);
   };
 
   const handleSignOut = async () => {
@@ -148,43 +405,37 @@ const AdminDashboard = () => {
     );
   }
 
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "profile", label: "Profile", icon: User },
+    { id: "resume", label: "Resume", icon: FileText },
+    { id: "projects", label: "Projects", icon: Code },
+    { id: "technology", label: "Technology", icon: Code },
+    { id: "experience", label: "Experience", icon: Briefcase },
+    { id: "education", label: "Education", icon: GraduationCap },
+  ];
+
   return (
     <div className="min-h-screen flex bg-muted">
-      {/* Sidebar */}
-      <aside className="w-64 bg-card border-r min-h-screen p-4 hidden md:block">
+      {/* Sidebar - Desktop */}
+      <aside className="w-64 bg-card border-r min-h-screen p-4 hidden lg:block fixed left-0 top-0 bottom-0 overflow-y-auto">
         <div className="mb-8">
           <h2 className="text-xl font-bold">Admin Panel</h2>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
+          <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
         </div>
 
-        <nav className="space-y-2">
-          <Button
-            variant={activeTab === "dashboard" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("dashboard")}
-          >
-            <LayoutDashboard className="w-4 h-4 mr-2" />
-            Dashboard
-          </Button>
-          <Button
-            variant={activeTab === "add" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              resetForm();
-              setActiveTab("add");
-            }}
-          >
-            <FolderPlus className="w-4 h-4 mr-2" />
-            Add Project
-          </Button>
-          <Button
-            variant={activeTab === "manage" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("manage")}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Manage Projects
-          </Button>
+        <nav className="space-y-1">
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab(item.id)}
+            >
+              <item.icon className="w-4 h-4 mr-2" />
+              {item.label}
+            </Button>
+          ))}
         </nav>
 
         <div className="absolute bottom-4 left-4 right-4 space-y-2">
@@ -200,7 +451,7 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-card border-b p-4 z-50 flex justify-between items-center">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-card border-b p-4 z-50 flex justify-between items-center">
         <h2 className="font-bold">Admin</h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => navigate("/")}>
@@ -213,169 +464,94 @@ const AdminDashboard = () => {
       </div>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t p-2 z-50 flex justify-around">
-        <Button
-          variant={activeTab === "dashboard" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("dashboard")}
-        >
-          <LayoutDashboard className="w-4 h-4" />
-        </Button>
-        <Button
-          variant={activeTab === "add" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => {
-            resetForm();
-            setActiveTab("add");
-          }}
-        >
-          <Plus className="w-4 h-4" />
-        </Button>
-        <Button
-          variant={activeTab === "manage" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("manage")}
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t p-2 z-50 overflow-x-auto">
+        <div className="flex justify-around min-w-max px-2 gap-1">
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? "default" : "ghost"}
+              size="sm"
+              className="flex-shrink-0"
+              onClick={() => setActiveTab(item.id)}
+            >
+              <item.icon className="w-4 h-4" />
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 md:pt-8 pt-20 pb-20 md:pb-8">
+      <main className="flex-1 p-4 lg:p-8 lg:ml-64 pt-20 lg:pt-8 pb-20 lg:pb-8">
+        {/* Dashboard Tab */}
         {activeTab === "dashboard" && (
           <div>
-            <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-            <div className="grid md:grid-cols-3 gap-4">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-6">Dashboard</h1>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Total Projects</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Projects</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-bold text-secondary">{projects.length}</p>
+                  <p className="text-3xl font-bold text-primary">{projects.length}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader>
-                  <CardTitle>Live Projects</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Technologies</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-bold text-green-600">
-                    {projects.filter(p => p.live_link).length}
-                  </p>
+                  <p className="text-3xl font-bold text-green-600">{categories.length}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader>
-                  <CardTitle>With Images</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Education</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-bold text-blue-600">
-                    {projects.filter(p => p.image_url).length}
-                  </p>
+                  <p className="text-3xl font-bold text-blue-600">{education.length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Experience</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-purple-600">{experiences.length}</p>
                 </CardContent>
               </Card>
             </div>
           </div>
         )}
 
-        {activeTab === "add" && (
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
           <div>
-            <h1 className="text-3xl font-bold mb-6">Add New Project</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold mb-6">Profile Settings</h1>
             <Card className="max-w-2xl">
               <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="title">Project Title *</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Description (one point per line) *</Label>
-                    <Textarea
-                      id="description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                      placeholder="HTML, CSS, and PHP used&#10;Responsive design&#10;User authentication"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="techStack">Tech Stack *</Label>
-                    <Input
-                      id="techStack"
-                      value={techStack}
-                      onChange={(e) => setTechStack(e.target.value)}
-                      placeholder="React, Node.js, MongoDB"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="image">Project Image</Label>
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                    {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="mt-2 w-full max-w-xs rounded-lg"
-                      />
+                    <Label>Profile Picture</Label>
+                    <Input type="file" accept="image/*" onChange={handleProfileImageChange} />
+                    {profileImagePreview && (
+                      <img src={profileImagePreview} alt="Profile" className="mt-2 w-32 h-32 rounded-full object-cover" />
                     )}
                   </div>
-
                   <div>
-                    <Label htmlFor="githubLink">GitHub Link</Label>
-                    <Input
-                      id="githubLink"
-                      value={githubLink}
-                      onChange={(e) => setGithubLink(e.target.value)}
-                      placeholder="https://github.com/..."
-                    />
+                    <Label>Name</Label>
+                    <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
                   </div>
-
                   <div>
-                    <Label htmlFor="liveLink">Live Demo Link</Label>
-                    <Input
-                      id="liveLink"
-                      value={liveLink}
-                      onChange={(e) => setLiveLink(e.target.value)}
-                      placeholder="https://..."
-                    />
+                    <Label>Title</Label>
+                    <Input value={profileTitle} onChange={(e) => setProfileTitle(e.target.value)} required />
                   </div>
-
                   <div>
-                    <Label htmlFor="displayOrder">Display Order</Label>
-                    <Input
-                      id="displayOrder"
-                      type="number"
-                      value={displayOrder}
-                      onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
-                    />
+                    <Label>Description</Label>
+                    <Textarea value={profileDescription} onChange={(e) => setProfileDescription(e.target.value)} rows={3} required />
                   </div>
-
-                  <Button type="submit" disabled={formLoading} className="w-full">
-                    {formLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Project
-                      </>
-                    )}
+                  <Button type="submit" disabled={formLoading}>
+                    {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Save Profile
                   </Button>
                 </form>
               </CardContent>
@@ -383,149 +559,321 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === "manage" && (
+        {/* Resume Tab */}
+        {activeTab === "resume" && (
           <div>
-            <h1 className="text-3xl font-bold mb-6">Manage Projects</h1>
-            
+            <h1 className="text-2xl lg:text-3xl font-bold mb-6">Resume Management</h1>
+            <Card className="max-w-2xl">
+              <CardContent className="pt-6 space-y-4">
+                {resume ? (
+                  <div className="p-4 bg-muted rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium">{resume.file_name}</p>
+                      <a href={resume.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                        View Resume
+                      </a>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Resume?</AlertDialogTitle>
+                          <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={deleteResume}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No resume uploaded yet.</p>
+                )}
+                <div className="border-t pt-4">
+                  <Label>Upload New Resume</Label>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                    <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
+                    <Button onClick={handleResumeUpload} disabled={!resumeFile || formLoading}>
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Projects Tab */}
+        {activeTab === "projects" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Projects</h1>
+              <Dialog open={projectDialogOpen} onOpenChange={(open) => { setProjectDialogOpen(open); if (!open) resetProjectForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Project</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingProject ? "Edit Project" : "Add Project"}</DialogTitle>
+                    <DialogDescription>Fill in the project details</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleProjectSubmit} className="space-y-4">
+                    <div><Label>Title *</Label><Input value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} required /></div>
+                    <div><Label>Description (one per line) *</Label><Textarea value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} rows={4} required /></div>
+                    <div><Label>Tech Stack *</Label><Input value={projectTechStack} onChange={(e) => setProjectTechStack(e.target.value)} required /></div>
+                    <div><Label>Image</Label><Input type="file" accept="image/*" onChange={handleProjectImageChange} />
+                      {projectImagePreview && <img src={projectImagePreview} alt="Preview" className="mt-2 w-full max-w-xs rounded-lg" />}
+                    </div>
+                    <div><Label>GitHub Link</Label><Input value={projectGithub} onChange={(e) => setProjectGithub(e.target.value)} /></div>
+                    <div><Label>Live Demo Link</Label><Input value={projectLive} onChange={(e) => setProjectLive(e.target.value)} /></div>
+                    <div><Label>Display Order</Label><Input type="number" value={projectOrder} onChange={(e) => setProjectOrder(parseInt(e.target.value) || 0)} /></div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingProject ? "Update" : "Add"} Project
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
             {projectsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : projects.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground mb-4">No projects yet</p>
-                  <Button onClick={() => setActiveTab("add")}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Your First Project
-                  </Button>
-                </CardContent>
-              </Card>
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No projects yet</CardContent></Card>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((project) => (
                   <Card key={project.id}>
-                    {project.image_url && (
-                      <img
-                        src={project.image_url}
-                        alt={project.title}
-                        className="w-full h-40 object-cover rounded-t-lg"
-                      />
-                    )}
+                    {project.image_url && <img src={project.image_url} alt={project.title} className="w-full h-40 object-cover rounded-t-lg" />}
                     <CardContent className="p-4">
-                      <h3 className="font-bold mb-2">{project.title}</h3>
+                      <h3 className="font-bold mb-1">{project.title}</h3>
                       <p className="text-sm text-muted-foreground mb-4">{project.tech_stack}</p>
                       <div className="flex gap-2">
-                        <Dialog open={isDialogOpen && editingProject?.id === project.id} onOpenChange={(open) => {
-                          setIsDialogOpen(open);
-                          if (!open) resetForm();
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => handleEdit(project)}>
-                              <Pencil className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Edit Project</DialogTitle>
-                              <DialogDescription>Update project details</DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                              <div>
-                                <Label htmlFor="edit-title">Title</Label>
-                                <Input
-                                  id="edit-title"
-                                  value={title}
-                                  onChange={(e) => setTitle(e.target.value)}
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-description">Description</Label>
-                                <Textarea
-                                  id="edit-description"
-                                  value={description}
-                                  onChange={(e) => setDescription(e.target.value)}
-                                  rows={4}
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-techStack">Tech Stack</Label>
-                                <Input
-                                  id="edit-techStack"
-                                  value={techStack}
-                                  onChange={(e) => setTechStack(e.target.value)}
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-image">Image</Label>
-                                <Input
-                                  id="edit-image"
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleImageChange}
-                                />
-                                {imagePreview && (
-                                  <img src={imagePreview} alt="Preview" className="mt-2 w-full max-w-xs rounded-lg" />
-                                )}
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-githubLink">GitHub Link</Label>
-                                <Input
-                                  id="edit-githubLink"
-                                  value={githubLink}
-                                  onChange={(e) => setGithubLink(e.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-liveLink">Live Link</Label>
-                                <Input
-                                  id="edit-liveLink"
-                                  value={liveLink}
-                                  onChange={(e) => setLiveLink(e.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="edit-displayOrder">Display Order</Label>
-                                <Input
-                                  id="edit-displayOrder"
-                                  type="number"
-                                  value={displayOrder}
-                                  onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
-                                />
-                              </div>
-                              <Button type="submit" disabled={formLoading} className="w-full">
-                                {formLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Project"}
-                              </Button>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-
+                        <Button size="sm" variant="outline" onClick={() => handleEditProject(project)}><Pencil className="w-4 h-4" /></Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete
-                            </Button>
-                          </AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Project?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. "{project.title}" will be permanently deleted.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Project?</AlertDialogTitle></AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(project.id)}>
-                                Delete
-                              </AlertDialogAction>
+                              <AlertDialogAction onClick={() => deleteProject(project.id)}>Delete</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Technology Tab */}
+        {activeTab === "technology" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Technology & Tools</h1>
+              <Dialog open={techDialogOpen} onOpenChange={(open) => { setTechDialogOpen(open); if (!open) resetTechForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Category</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingTech ? "Edit Category" : "Add Category"}</DialogTitle>
+                    <DialogDescription>Fill in the technology category details</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleTechSubmit} className="space-y-4">
+                    <div><Label>Title *</Label><Input value={techTitle} onChange={(e) => setTechTitle(e.target.value)} required /></div>
+                    <div><Label>Icon Name</Label><Input value={techIcon} onChange={(e) => setTechIcon(e.target.value)} placeholder="Code, Smartphone, Brain, etc." /></div>
+                    <div><Label>Color Gradient</Label><Input value={techColor} onChange={(e) => setTechColor(e.target.value)} placeholder="from-blue-500 to-blue-700" /></div>
+                    <div>
+                      <Label>Subcategories (format: Name:\nTech1\nTech2\n\nName2:\nTech3)</Label>
+                      <Textarea value={techSubcategories} onChange={(e) => setTechSubcategories(e.target.value)} rows={8} placeholder="Frontend Technologies:
+HTML
+CSS
+JavaScript
+
+Backend Technologies:
+Node.js
+PHP" />
+                    </div>
+                    <div><Label>Display Order</Label><Input type="number" value={techOrder} onChange={(e) => setTechOrder(parseInt(e.target.value) || 0)} /></div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingTech ? "Update" : "Add"} Category
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {techLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : categories.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No categories yet</CardContent></Card>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.map((cat) => (
+                  <Card key={cat.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{cat.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">{cat.subcategories.length} subcategories</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEditTech(cat)}><Pencil className="w-4 h-4" /></Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Category?</AlertDialogTitle></AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteCategory(cat.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Experience Tab */}
+        {activeTab === "experience" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Professional Experience</h1>
+              <Dialog open={expDialogOpen} onOpenChange={(open) => { setExpDialogOpen(open); if (!open) resetExperienceForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Experience</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingExperience ? "Edit Experience" : "Add Experience"}</DialogTitle>
+                    <DialogDescription>Fill in the experience details</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleExperienceSubmit} className="space-y-4">
+                    <div><Label>Title *</Label><Input value={expTitle} onChange={(e) => setExpTitle(e.target.value)} required /></div>
+                    <div><Label>Company *</Label><Input value={expCompany} onChange={(e) => setExpCompany(e.target.value)} required /></div>
+                    <div><Label>Location *</Label><Input value={expLocation} onChange={(e) => setExpLocation(e.target.value)} required /></div>
+                    <div><Label>Period *</Label><Input value={expPeriod} onChange={(e) => setExpPeriod(e.target.value)} placeholder="Jan 2023 - Present" required /></div>
+                    <div><Label>Description (one per line) *</Label><Textarea value={expDescription} onChange={(e) => setExpDescription(e.target.value)} rows={4} required /></div>
+                    <div><Label>Display Order</Label><Input type="number" value={expOrder} onChange={(e) => setExpOrder(parseInt(e.target.value) || 0)} /></div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingExperience ? "Update" : "Add"} Experience
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {expLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : experiences.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No experiences yet</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {experiences.map((exp) => (
+                  <Card key={exp.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div>
+                          <h3 className="font-bold">{exp.title}</h3>
+                          <p className="text-sm text-muted-foreground">{exp.company} • {exp.location}</p>
+                          <p className="text-sm text-primary">{exp.period}</p>
+                        </div>
+                        <div className="flex gap-2 self-start">
+                          <Button size="sm" variant="outline" onClick={() => handleEditExperience(exp)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete Experience?</AlertDialogTitle></AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteExperience(exp.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Education Tab */}
+        {activeTab === "education" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Education</h1>
+              <Dialog open={eduDialogOpen} onOpenChange={(open) => { setEduDialogOpen(open); if (!open) resetEducationForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Education</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingEducation ? "Edit Education" : "Add Education"}</DialogTitle>
+                    <DialogDescription>Fill in the education details</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleEducationSubmit} className="space-y-4">
+                    <div><Label>Year *</Label><Input value={eduYear} onChange={(e) => setEduYear(e.target.value)} placeholder="2022 to 2026" required /></div>
+                    <div><Label>Institution *</Label><Input value={eduInstitution} onChange={(e) => setEduInstitution(e.target.value)} required /></div>
+                    <div><Label>Location *</Label><Input value={eduLocation} onChange={(e) => setEduLocation(e.target.value)} required /></div>
+                    <div><Label>Degree *</Label><Input value={eduDegree} onChange={(e) => setEduDegree(e.target.value)} required /></div>
+                    <div><Label>Period *</Label><Input value={eduPeriod} onChange={(e) => setEduPeriod(e.target.value)} placeholder="2023 - 2026" required /></div>
+                    <div><Label>Display Order</Label><Input type="number" value={eduOrder} onChange={(e) => setEduOrder(parseInt(e.target.value) || 0)} /></div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingEducation ? "Update" : "Add"} Education
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {eduLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : education.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No education records yet</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {education.map((edu) => (
+                  <Card key={edu.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-bold text-primary">{edu.year}</p>
+                          <h3 className="font-bold">{edu.institution}</h3>
+                          <p className="text-sm text-muted-foreground">{edu.location}</p>
+                          <p className="text-sm">{edu.degree}</p>
+                        </div>
+                        <div className="flex gap-2 self-start">
+                          <Button size="sm" variant="outline" onClick={() => handleEditEducation(edu)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete Education?</AlertDialogTitle></AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteEducation(edu.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

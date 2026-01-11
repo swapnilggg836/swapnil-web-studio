@@ -1,9 +1,53 @@
-
+import { useState, useEffect } from "react";
 import { Github, Linkedin, Instagram, Facebook, Download, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import profilePhoto from "@/assets/profile-photo.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import profilePhotoFallback from "@/assets/profile-photo.jpg";
+
+interface ProfileInfo {
+  profile_image_url: string | null;
+  name: string;
+  title: string;
+  description: string;
+}
+
+interface Resume {
+  file_url: string;
+  file_name: string;
+}
 
 const Hero = () => {
+  const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
+  const [resume, setResume] = useState<Resume | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch profile info
+      const { data: profileData } = await supabase
+        .from("profile_info")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      
+      if (profileData) {
+        setProfileInfo(profileData);
+      }
+
+      // Fetch resume
+      const { data: resumeData } = await supabase
+        .from("resume")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      
+      if (resumeData) {
+        setResume(resumeData);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const socialLinks = [
     { icon: Linkedin, href: "https://linkedin.com/in/your-profile", label: "LinkedIn", className: "hover:text-blue-600" },
     { icon: Github, href: "https://github.com/your-username", label: "GitHub", className: "hover:text-gray-800" },
@@ -13,14 +57,24 @@ const Hero = () => {
   ];
 
   const handleDownloadResume = () => {
-    // Create a link element and trigger download
-    const link = document.createElement('a');
-    link.href = '/resume.pdf'; // Place your resume.pdf file in the public folder
-    link.download = 'Swapnil_Gaikwad_Resume.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (resume?.file_url) {
+      window.open(resume.file_url, "_blank");
+    } else {
+      // Fallback to static resume
+      const link = document.createElement('a');
+      link.href = '/resume.pdf';
+      link.download = 'Swapnil_Gaikwad_Resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
+
+  // Use dynamic data or fallback to defaults
+  const name = profileInfo?.name || "Swapnil Gaikwad";
+  const title = profileInfo?.title || "Web Developer";
+  const description = profileInfo?.description || "To create dynamic, responsive, and secure web applications that enhance user experience and meet business goals.";
+  const profileImage = profileInfo?.profile_image_url || profilePhotoFallback;
 
   return (
     <section id="about" className="min-h-screen flex items-center bg-hero-gradient text-white pt-16">
@@ -32,16 +86,15 @@ const Hero = () => {
               <p className="text-xl text-blue-200">Hi,</p>
               <p className="text-xl text-blue-200">I am</p>
               <h1 className="text-4xl md:text-6xl font-bold text-white">
-                Swapnil Gaikwad
+                {name}
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-blue-200">
-                Web Developer
+                {title}
               </h2>
             </div>
             
             <p className="text-lg text-blue-100 max-w-2xl">
-              To create dynamic, responsive, and secure web applications that enhance
-              user experience and meet business goals.
+              {description}
             </p>
 
             {/* Social Links */}
@@ -79,8 +132,8 @@ const Hero = () => {
             <div className="relative">
               <div className="w-80 h-80 rounded-full overflow-hidden border-4 border-white/20 shadow-glow hover:shadow-glow transition-all duration-300 transform hover:scale-105">
                 <img
-                  src={profilePhoto}
-                  alt="Swapnil Gaikwad"
+                  src={profileImage}
+                  alt={name}
                   className="w-full h-full object-cover"
                 />
               </div>
