@@ -32,6 +32,78 @@ export type Database = {
         }
         Relationships: []
       }
+      education: {
+        Row: {
+          created_at: string
+          degree: string
+          display_order: number
+          id: string
+          institution: string
+          location: string
+          period: string
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          created_at?: string
+          degree: string
+          display_order?: number
+          id?: string
+          institution: string
+          location: string
+          period: string
+          updated_at?: string
+          year: string
+        }
+        Update: {
+          created_at?: string
+          degree?: string
+          display_order?: number
+          id?: string
+          institution?: string
+          location?: string
+          period?: string
+          updated_at?: string
+          year?: string
+        }
+        Relationships: []
+      }
+      experiences: {
+        Row: {
+          company: string
+          created_at: string
+          description: string[]
+          display_order: number
+          id: string
+          location: string
+          period: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          description?: string[]
+          display_order?: number
+          id?: string
+          location: string
+          period: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          description?: string[]
+          display_order?: number
+          id?: string
+          location?: string
+          period?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string
@@ -66,6 +138,63 @@ export type Database = {
           image_url?: string | null
           live_link?: string | null
           tech_stack?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resume: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_url: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_url: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      technology_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          icon: string
+          id: string
+          subcategories: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          display_order?: number
+          icon: string
+          id?: string
+          subcategories?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          subcategories?: Json
           title?: string
           updated_at?: string
         }
