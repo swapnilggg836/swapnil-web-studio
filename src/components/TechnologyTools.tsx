@@ -1,159 +1,150 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Code, Smartphone, Brain, BarChart3, Wrench, Users } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+
+interface Subcategory {
+  name: string;
+  technologies: string[];
+}
 
 interface TechCategory {
   id: string;
   title: string;
-  icon: any;
+  icon: string;
   color: string;
-  subcategories: {
-    name: string;
-    technologies: string[];
-  }[];
+  subcategories: Subcategory[];
 }
+
+// Icon mapping
+const iconMap: Record<string, typeof Code> = {
+  Code,
+  Smartphone,
+  Brain,
+  BarChart3,
+  Wrench,
+  Users,
+};
+
+// Fallback data
+const fallbackCategories: TechCategory[] = [
+  {
+    id: 'web',
+    title: 'Web Development',
+    icon: 'Code',
+    color: 'from-blue-500 to-blue-700',
+    subcategories: [
+      { name: 'Frontend Technologies', technologies: ['HTML', 'CSS', 'JavaScript', 'React.js', 'Tailwind CSS', 'Next.js', 'Bootstrap'] },
+      { name: 'Backend Technologies', technologies: ['PHP', 'Node.js', 'Flask (Python)', 'Express.js'] },
+      { name: 'Database Technologies', technologies: ['MySQL', 'MongoDB', 'JSON (Local Storage)'] },
+      { name: 'Full Stack Development', technologies: ['MERN Stack', 'MongoDB', 'Express.js', 'React', 'Node.js', 'Java Full Stack'] }
+    ]
+  },
+  {
+    id: 'app',
+    title: 'App Development',
+    icon: 'Smartphone',
+    color: 'from-green-500 to-green-700',
+    subcategories: [
+      { name: 'Mobile Technologies', technologies: ['React Native', 'Android Development', 'Cross-Platform Apps'] },
+      { name: 'Development Tools', technologies: ['Android Studio', 'Expo', 'Mobile UI/UX Design'] }
+    ]
+  },
+  {
+    id: 'ml',
+    title: 'Machine Learning',
+    icon: 'Brain',
+    color: 'from-purple-500 to-purple-700',
+    subcategories: [
+      { name: 'ML Libraries & Frameworks', technologies: ['scikit-learn', 'TensorFlow', 'Keras', 'PyTorch'] },
+      { name: 'ML Applications', technologies: ['Sentiment Analysis', 'Predictive Modeling', 'Classification', 'Regression'] }
+    ]
+  },
+  {
+    id: 'data',
+    title: 'Data Science',
+    icon: 'BarChart3',
+    color: 'from-orange-500 to-orange-700',
+    subcategories: [
+      { name: 'Data Analysis Tools', technologies: ['Python', 'Pandas', 'NumPy', 'Matplotlib', 'Power BI'] },
+      { name: 'Data Handling', technologies: ['CSV Processing', 'JSON Data Handling', 'Data Visualization', 'Statistical Analysis'] }
+    ]
+  },
+  {
+    id: 'tools',
+    title: 'Other Tools',
+    icon: 'Wrench',
+    color: 'from-red-500 to-red-700',
+    subcategories: [
+      { name: 'Development Tools', technologies: ['VS Code', 'Git & GitHub', 'Postman', 'XAMPP'] },
+      { name: 'Embedded & IoT', technologies: ['Arduino Uno', 'C/C++', 'Ultrasonic Sensor', 'LDR Sensor', 'Color Sensor', 'Motor Control'] },
+      { name: 'Hosting & Deployment', technologies: ['Hostinger', 'Web Hosting', 'Domain Management'] }
+    ]
+  },
+  {
+    id: 'soft',
+    title: 'Soft Skills',
+    icon: 'Users',
+    color: 'from-indigo-500 to-indigo-700',
+    subcategories: [
+      { name: 'Communication Skills', technologies: ['Strong Communication', 'Presentation Skills', 'Technical Writing'] },
+      { name: 'Leadership & Management', technologies: ['Teamwork', 'Leadership', 'Project Management', 'Problem Solving'] },
+      { name: 'Personal Qualities', technologies: ['Fast Learner', 'Adaptability', 'Critical Thinking', 'Time Management'] }
+    ]
+  },
+  {
+    id: 'skills',
+    title: 'Programming Skills',
+    icon: 'Code',
+    color: 'from-teal-500 to-teal-700',
+    subcategories: [
+      { name: 'Programming Languages', technologies: ['Python', 'Java', 'C++', 'JavaScript', 'PHP', 'C'] },
+      { name: 'Programming Concepts', technologies: ['OOP (Object-Oriented Programming)', 'Data Structures', 'Algorithms', 'Design Patterns'] },
+      { name: 'Database Management', technologies: ['MySQL', 'MongoDB', 'SQLite', 'Database Design', 'Query Optimization'] },
+      { name: 'IoT Projects', technologies: ['Arduino Programming', 'Sensor Integration', 'Hardware Control', 'Embedded C/C++'] }
+    ]
+  }
+];
 
 const TechnologyTools = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [techCategories, setTechCategories] = useState<TechCategory[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const techCategories: TechCategory[] = [
-    {
-      id: 'web',
-      title: 'Web Development',
-      icon: Code,
-      color: 'from-blue-500 to-blue-700',
-      subcategories: [
-        {
-          name: 'Frontend Technologies',
-          technologies: ['HTML', 'CSS', 'JavaScript', 'React.js', 'Tailwind CSS', 'Next.js', 'Bootstrap']
-        },
-        {
-          name: 'Backend Technologies',
-          technologies: ['PHP', 'Node.js', 'Flask (Python)', 'Express.js']
-        },
-        {
-          name: 'Database Technologies',
-          technologies: ['MySQL', 'MongoDB', 'JSON (Local Storage)']
-        },
-        {
-          name: 'Full Stack Development',
-          technologies: ['MERN Stack', 'MongoDB', 'Express.js', 'React', 'Node.js', 'Java Full Stack']
-        }
-      ]
-    },
-    {
-      id: 'app',
-      title: 'App Development',
-      icon: Smartphone,
-      color: 'from-green-500 to-green-700',
-      subcategories: [
-        {
-          name: 'Mobile Technologies',
-          technologies: ['React Native', 'Android Development', 'Cross-Platform Apps']
-        },
-        {
-          name: 'Development Tools',
-          technologies: ['Android Studio', 'Expo', 'Mobile UI/UX Design']
-        }
-      ]
-    },
-    {
-      id: 'ml',
-      title: 'Machine Learning',
-      icon: Brain,
-      color: 'from-purple-500 to-purple-700',
-      subcategories: [
-        {
-          name: 'ML Libraries & Frameworks',
-          technologies: ['scikit-learn', 'TensorFlow', 'Keras', 'PyTorch']
-        },
-        {
-          name: 'ML Applications',
-          technologies: ['Sentiment Analysis', 'Predictive Modeling', 'Classification', 'Regression']
-        }
-      ]
-    },
-    {
-      id: 'data',
-      title: 'Data Science',
-      icon: BarChart3,
-      color: 'from-orange-500 to-orange-700',
-      subcategories: [
-        {
-          name: 'Data Analysis Tools',
-          technologies: ['Python', 'Pandas', 'NumPy', 'Matplotlib', 'Power BI']
-        },
-        {
-          name: 'Data Handling',
-          technologies: ['CSV Processing', 'JSON Data Handling', 'Data Visualization', 'Statistical Analysis']
-        }
-      ]
-    },
-    {
-      id: 'tools',
-      title: 'Other Tools',
-      icon: Wrench,
-      color: 'from-red-500 to-red-700',
-      subcategories: [
-        {
-          name: 'Development Tools',
-          technologies: ['VS Code', 'Git & GitHub', 'Postman', 'XAMPP']
-        },
-        {
-          name: 'Embedded & IoT',
-          technologies: ['Arduino Uno', 'C/C++', 'Ultrasonic Sensor', 'LDR Sensor', 'Color Sensor', 'Motor Control']
-        },
-        {
-          name: 'Hosting & Deployment',
-          technologies: ['Hostinger', 'Web Hosting', 'Domain Management']
-        }
-      ]
-    },
-    {
-      id: 'soft',
-      title: 'Soft Skills',
-      icon: Users,
-      color: 'from-indigo-500 to-indigo-700',
-      subcategories: [
-        {
-          name: 'Communication Skills',
-          technologies: ['Strong Communication', 'Presentation Skills', 'Technical Writing']
-        },
-        {
-          name: 'Leadership & Management',
-          technologies: ['Teamwork', 'Leadership', 'Project Management', 'Problem Solving']
-        },
-        {
-          name: 'Personal Qualities',
-          technologies: ['Fast Learner', 'Adaptability', 'Critical Thinking', 'Time Management']
-        }
-      ]
-    },
-    {
-      id: 'skills',
-      title: 'Programming Skills',
-      icon: Code,
-      color: 'from-teal-500 to-teal-700',
-      subcategories: [
-        {
-          name: 'Programming Languages',
-          technologies: ['Python', 'Java', 'C++', 'JavaScript', 'PHP', 'C']
-        },
-        {
-          name: 'Programming Concepts',
-          technologies: ['OOP (Object-Oriented Programming)', 'Data Structures', 'Algorithms', 'Design Patterns']
-        },
-        {
-          name: 'Database Management',
-          technologies: ['MySQL', 'MongoDB', 'SQLite', 'Database Design', 'Query Optimization']
-        },
-        {
-          name: 'IoT Projects',
-          technologies: ['Arduino Programming', 'Sensor Integration', 'Hardware Control', 'Embedded C/C++']
-        }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from("technology_categories")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        setTechCategories(fallbackCategories);
+      } else {
+        const transformed = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          icon: item.icon,
+          color: item.color,
+          subcategories: (item.subcategories as unknown as Subcategory[]) || []
+        }));
+        setTechCategories(transformed);
+      }
+      setLoading(false);
+    };
+
+    fetchCategories();
+  }, []);
+
+  if (loading) {
+    return (
+      <section id="technology" className="py-20 bg-gradient-to-br from-background via-muted/30 to-background">
+        <div className="container mx-auto px-4 flex justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="technology" className="py-20 bg-gradient-to-br from-background via-muted/30 to-background">
@@ -169,7 +160,7 @@ const TechnologyTools = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {techCategories.map((category) => {
-            const IconComponent = category.icon;
+            const IconComponent = iconMap[category.icon] || Code;
             const isActive = activeCategory === category.id;
             
             return (

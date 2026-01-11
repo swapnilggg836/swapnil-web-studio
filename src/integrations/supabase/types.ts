@@ -104,6 +104,36 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_info: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          profile_image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          profile_image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          profile_image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string
