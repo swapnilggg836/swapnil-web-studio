@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Github, Linkedin, Instagram, Facebook, Download, Mail } from "lucide-react";
+import { Github, Linkedin, Instagram, Facebook, Download, Mail, Twitter, Youtube, MessageCircle, Globe, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import profilePhotoFallback from "@/assets/profile-photo.jpg";
@@ -16,51 +16,65 @@ interface Resume {
   file_name: string;
 }
 
+interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  icon: string;
+  display_order: number;
+}
+
+const iconMap: Record<string, any> = {
+  Linkedin,
+  Github,
+  Mail,
+  Instagram,
+  Facebook,
+  Twitter,
+  Youtube,
+  MessageCircle,
+  Globe,
+  Phone,
+};
+
+const colorMap: Record<string, string> = {
+  Linkedin: "hover:text-blue-600",
+  Github: "hover:text-gray-800",
+  Mail: "hover:text-red-600",
+  Instagram: "hover:text-pink-600",
+  Facebook: "hover:text-blue-500",
+  Twitter: "hover:text-sky-500",
+  Youtube: "hover:text-red-500",
+  MessageCircle: "hover:text-green-500",
+  Globe: "hover:text-indigo-500",
+  Phone: "hover:text-green-600",
+};
+
 const Hero = () => {
   const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch profile info
-      const { data: profileData } = await supabase
-        .from("profile_info")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-      
-      if (profileData) {
-        setProfileInfo(profileData);
-      }
+      const [profileRes, resumeRes, socialRes] = await Promise.all([
+        supabase.from("profile_info").select("*").limit(1).maybeSingle(),
+        supabase.from("resume").select("*").limit(1).maybeSingle(),
+        supabase.from("social_links").select("*").order("display_order", { ascending: true }),
+      ]);
 
-      // Fetch resume
-      const { data: resumeData } = await supabase
-        .from("resume")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-      
-      if (resumeData) {
-        setResume(resumeData);
-      }
+      if (profileRes.data) setProfileInfo(profileRes.data);
+      if (resumeRes.data) setResume(resumeRes.data);
+      if (socialRes.data) setSocialLinks(socialRes.data);
     };
 
     fetchData();
   }, []);
 
-  const socialLinks = [
-    { icon: Linkedin, href: "https://linkedin.com/in/your-profile", label: "LinkedIn", className: "hover:text-blue-600" },
-    { icon: Github, href: "https://github.com/your-username", label: "GitHub", className: "hover:text-gray-800" },
-    { icon: Mail, href: "mailto:your-email@gmail.com", label: "Gmail", className: "hover:text-red-600" },
-    { icon: Instagram, href: "https://instagram.com/your-profile", label: "Instagram", className: "hover:text-pink-600" },
-    { icon: Facebook, href: "https://facebook.com/your-profile", label: "Facebook", className: "hover:text-blue-500" },
-  ];
-
   const handleDownloadResume = () => {
     if (resume?.file_url) {
       window.open(resume.file_url, "_blank");
     } else {
-      // Fallback to static resume
       const link = document.createElement('a');
       link.href = '/resume.pdf';
       link.download = 'Swapnil_Gaikwad_Resume.pdf';
@@ -70,7 +84,6 @@ const Hero = () => {
     }
   };
 
-  // Use dynamic data or fallback to defaults
   const name = profileInfo?.name || "Swapnil Gaikwad";
   const title = profileInfo?.title || "Web Developer";
   const description = profileInfo?.description || "To create dynamic, responsive, and secure web applications that enhance user experience and meet business goals.";
@@ -80,41 +93,38 @@ const Hero = () => {
     <section id="about" className="min-h-screen flex items-center bg-hero-gradient text-white pt-16">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Content */}
           <div className="space-y-6 text-center lg:text-left">
             <div className="space-y-2">
               <p className="text-xl text-blue-200">Hi,</p>
               <p className="text-xl text-blue-200">I am</p>
-              <h1 className="text-4xl md:text-6xl font-bold text-white">
-                {name}
-              </h1>
-              <h2 className="text-2xl md:text-3xl font-semibold text-blue-200">
-                {title}
-              </h2>
+              <h1 className="text-4xl md:text-6xl font-bold text-white">{name}</h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-blue-200">{title}</h2>
             </div>
             
-            <p className="text-lg text-blue-100 max-w-2xl">
-              {description}
-            </p>
+            <p className="text-lg text-blue-100 max-w-2xl">{description}</p>
 
-            {/* Social Links */}
-            <div className="flex justify-center lg:justify-start space-x-4">
-              {socialLinks.map((social, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="icon"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:shadow-glow-sm transition-all duration-300"
-                  asChild
-                >
-                  <a href={social.href} aria-label={social.label} target="_blank" rel="noopener noreferrer">
-                    <social.icon size={20} />
-                  </a>
-                </Button>
-              ))}
-            </div>
+            {/* Social Links - Dynamic */}
+            {socialLinks.length > 0 && (
+              <div className="flex justify-center lg:justify-start space-x-4">
+                {socialLinks.map((link) => {
+                  const IconComponent = iconMap[link.icon] || Globe;
+                  return (
+                    <Button
+                      key={link.id}
+                      variant="outline"
+                      size="icon"
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:shadow-glow-sm transition-all duration-300"
+                      asChild
+                    >
+                      <a href={link.url} aria-label={link.platform} target="_blank" rel="noopener noreferrer">
+                        <IconComponent size={20} />
+                      </a>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Download Resume Button */}
             <div className="pt-4">
               <Button
                 size="lg"
@@ -127,15 +137,10 @@ const Hero = () => {
             </div>
           </div>
 
-          {/* Profile Image */}
           <div className="flex justify-center lg:justify-end">
             <div className="relative">
               <div className="w-80 h-80 rounded-full overflow-hidden border-4 border-white/20 shadow-glow hover:shadow-glow transition-all duration-300 transform hover:scale-105">
-                <img
-                  src={profileImage}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={profileImage} alt={name} className="w-full h-full object-cover" />
               </div>
             </div>
           </div>

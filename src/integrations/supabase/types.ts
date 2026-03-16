@@ -197,6 +197,36 @@ export type Database = {
         }
         Relationships: []
       }
+      social_links: {
+        Row: {
+          created_at: string
+          display_order: number
+          icon: string
+          id: string
+          platform: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          icon: string
+          id?: string
+          platform: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          platform?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       technology_categories: {
         Row: {
           color: string
