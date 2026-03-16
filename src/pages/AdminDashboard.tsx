@@ -7,6 +7,7 @@ import { useTechnology, TechnologyCategory, Subcategory } from "@/hooks/useTechn
 import { useEducation, Education } from "@/hooks/useEducation";
 import { useExperience, Experience } from "@/hooks/useExperience";
 import { useProfileInfo } from "@/hooks/useProfileInfo";
+import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ICON_OPTIONS = [
+  { value: "Linkedin", label: "LinkedIn" },
+  { value: "Github", label: "GitHub" },
+  { value: "Mail", label: "Email/Gmail" },
+  { value: "Instagram", label: "Instagram" },
+  { value: "Facebook", label: "Facebook" },
+  { value: "Twitter", label: "Twitter/X" },
+  { value: "Youtube", label: "YouTube" },
+  { value: "MessageCircle", label: "WhatsApp" },
+  { value: "Globe", label: "Website" },
+  { value: "Phone", label: "Phone" },
+];
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -43,6 +64,7 @@ const AdminDashboard = () => {
   const { education, loading: eduLoading, addEducation, updateEducation, deleteEducation } = useEducation();
   const { experiences, loading: expLoading, addExperience, updateExperience, deleteExperience } = useExperience();
   const { profileInfo, loading: profileLoading, uploadProfileImage, saveProfileInfo } = useProfileInfo();
+  const { socialLinks, loading: socialLoading, addSocialLink, updateSocialLink, deleteSocialLink } = useSocialLinks();
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -98,6 +120,14 @@ const AdminDashboard = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 
+  // Social link form state
+  const [editingSocial, setEditingSocial] = useState<SocialLink | null>(null);
+  const [socialDialogOpen, setSocialDialogOpen] = useState(false);
+  const [socialPlatform, setSocialPlatform] = useState("");
+  const [socialUrl, setSocialUrl] = useState("");
+  const [socialIcon, setSocialIcon] = useState("Globe");
+  const [socialOrder, setSocialOrder] = useState(0);
+
   // Resume state
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
@@ -118,44 +148,29 @@ const AdminDashboard = () => {
 
   // Reset functions
   const resetProjectForm = () => {
-    setProjectTitle("");
-    setProjectDescription("");
-    setProjectTechStack("");
-    setProjectGithub("");
-    setProjectLive("");
-    setProjectOrder(0);
-    setProjectImage(null);
-    setProjectImagePreview(null);
-    setEditingProject(null);
+    setProjectTitle(""); setProjectDescription(""); setProjectTechStack("");
+    setProjectGithub(""); setProjectLive(""); setProjectOrder(0);
+    setProjectImage(null); setProjectImagePreview(null); setEditingProject(null);
   };
 
   const resetEducationForm = () => {
-    setEduYear("");
-    setEduInstitution("");
-    setEduLocation("");
-    setEduDegree("");
-    setEduPeriod("");
-    setEduOrder(0);
-    setEditingEducation(null);
+    setEduYear(""); setEduInstitution(""); setEduLocation("");
+    setEduDegree(""); setEduPeriod(""); setEduOrder(0); setEditingEducation(null);
   };
 
   const resetExperienceForm = () => {
-    setExpTitle("");
-    setExpCompany("");
-    setExpLocation("");
-    setExpPeriod("");
-    setExpDescription("");
-    setExpOrder(0);
-    setEditingExperience(null);
+    setExpTitle(""); setExpCompany(""); setExpLocation("");
+    setExpPeriod(""); setExpDescription(""); setExpOrder(0); setEditingExperience(null);
   };
 
   const resetTechForm = () => {
-    setTechTitle("");
-    setTechIcon("Code");
-    setTechColor("from-blue-500 to-blue-700");
-    setTechSubcategories("");
-    setTechOrder(0);
-    setEditingTech(null);
+    setTechTitle(""); setTechIcon("Code"); setTechColor("from-blue-500 to-blue-700");
+    setTechSubcategories(""); setTechOrder(0); setEditingTech(null);
+  };
+
+  const resetSocialForm = () => {
+    setSocialPlatform(""); setSocialUrl(""); setSocialIcon("Globe");
+    setSocialOrder(0); setEditingSocial(null);
   };
 
   // Handle functions
@@ -182,13 +197,9 @@ const AdminDashboard = () => {
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-
     try {
       let imageUrl = editingProject?.image_url || null;
-      if (projectImage) {
-        imageUrl = await uploadImage(projectImage);
-      }
-
+      if (projectImage) imageUrl = await uploadImage(projectImage);
       const projectData = {
         title: projectTitle,
         description: projectDescription.split("\n").filter(line => line.trim()),
@@ -198,198 +209,126 @@ const AdminDashboard = () => {
         display_order: projectOrder,
         image_url: imageUrl,
       };
-
-      if (editingProject) {
-        await updateProject(editingProject.id, projectData);
-      } else {
-        await addProject(projectData);
-      }
-
-      resetProjectForm();
-      setProjectDialogOpen(false);
+      if (editingProject) await updateProject(editingProject.id, projectData);
+      else await addProject(projectData);
+      resetProjectForm(); setProjectDialogOpen(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleEducationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-
     try {
-      const eduData = {
-        year: eduYear,
-        institution: eduInstitution,
-        location: eduLocation,
-        degree: eduDegree,
-        period: eduPeriod,
-        display_order: eduOrder,
-      };
-
-      if (editingEducation) {
-        await updateEducation(editingEducation.id, eduData);
-      } else {
-        await addEducation(eduData);
-      }
-
-      resetEducationForm();
-      setEduDialogOpen(false);
+      const eduData = { year: eduYear, institution: eduInstitution, location: eduLocation, degree: eduDegree, period: eduPeriod, display_order: eduOrder };
+      if (editingEducation) await updateEducation(editingEducation.id, eduData);
+      else await addEducation(eduData);
+      resetEducationForm(); setEduDialogOpen(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleExperienceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-
     try {
-      const expData = {
-        title: expTitle,
-        company: expCompany,
-        location: expLocation,
-        period: expPeriod,
-        description: expDescription.split("\n").filter(line => line.trim()),
-        display_order: expOrder,
-      };
-
-      if (editingExperience) {
-        await updateExperience(editingExperience.id, expData);
-      } else {
-        await addExperience(expData);
-      }
-
-      resetExperienceForm();
-      setExpDialogOpen(false);
+      const expData = { title: expTitle, company: expCompany, location: expLocation, period: expPeriod, description: expDescription.split("\n").filter(line => line.trim()), display_order: expOrder };
+      if (editingExperience) await updateExperience(editingExperience.id, expData);
+      else await addExperience(expData);
+      resetExperienceForm(); setExpDialogOpen(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleTechSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-
     try {
-      // Parse subcategories from text format
       const subcats: Subcategory[] = techSubcategories.split("\n\n").filter(s => s.trim()).map(block => {
         const lines = block.split("\n");
         const name = lines[0]?.replace(":", "").trim() || "";
         const technologies = lines.slice(1).map(t => t.trim()).filter(t => t);
         return { name, technologies };
       });
-
-      const techData = {
-        title: techTitle,
-        icon: techIcon,
-        color: techColor,
-        subcategories: subcats,
-        display_order: techOrder,
-      };
-
-      if (editingTech) {
-        await updateCategory(editingTech.id, techData);
-      } else {
-        await addCategory(techData);
-      }
-
-      resetTechForm();
-      setTechDialogOpen(false);
+      const techData = { title: techTitle, icon: techIcon, color: techColor, subcategories: subcats, display_order: techOrder };
+      if (editingTech) await updateCategory(editingTech.id, techData);
+      else await addCategory(techData);
+      resetTechForm(); setTechDialogOpen(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
-
     try {
       let imageUrl = profileInfo?.profile_image_url || null;
-      if (profileImage) {
-        imageUrl = await uploadProfileImage(profileImage);
-      }
-
-      await saveProfileInfo({
-        profile_image_url: imageUrl,
-        name: profileName,
-        title: profileTitle,
-        description: profileDescription,
-      });
+      if (profileImage) imageUrl = await uploadProfileImage(profileImage);
+      await saveProfileInfo({ profile_image_url: imageUrl, name: profileName, title: profileTitle, description: profileDescription });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
+  };
+
+  const handleSocialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    try {
+      const data = { platform: socialPlatform, url: socialUrl, icon: socialIcon, display_order: socialOrder };
+      if (editingSocial) await updateSocialLink(editingSocial.id, data);
+      else await addSocialLink(data);
+      resetSocialForm(); setSocialDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally { setFormLoading(false); }
   };
 
   const handleResumeUpload = async () => {
     if (!resumeFile) return;
     setFormLoading(true);
-
     try {
       const fileUrl = await uploadResume(resumeFile);
-      if (fileUrl) {
-        await saveResume(fileUrl, resumeFile.name);
-        setResumeFile(null);
-      }
+      if (fileUrl) { await saveResume(fileUrl, resumeFile.name); setResumeFile(null); }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleEditProject = (project: Project) => {
-    setEditingProject(project);
-    setProjectTitle(project.title);
-    setProjectDescription(project.description.join("\n"));
-    setProjectTechStack(project.tech_stack);
-    setProjectGithub(project.github_link || "");
-    setProjectLive(project.live_link || "");
-    setProjectOrder(project.display_order);
-    setProjectImagePreview(project.image_url);
+    setEditingProject(project); setProjectTitle(project.title);
+    setProjectDescription(project.description.join("\n")); setProjectTechStack(project.tech_stack);
+    setProjectGithub(project.github_link || ""); setProjectLive(project.live_link || "");
+    setProjectOrder(project.display_order); setProjectImagePreview(project.image_url);
     setProjectDialogOpen(true);
   };
 
   const handleEditEducation = (edu: Education) => {
-    setEditingEducation(edu);
-    setEduYear(edu.year);
-    setEduInstitution(edu.institution);
-    setEduLocation(edu.location);
-    setEduDegree(edu.degree);
-    setEduPeriod(edu.period);
-    setEduOrder(edu.display_order);
-    setEduDialogOpen(true);
+    setEditingEducation(edu); setEduYear(edu.year); setEduInstitution(edu.institution);
+    setEduLocation(edu.location); setEduDegree(edu.degree); setEduPeriod(edu.period);
+    setEduOrder(edu.display_order); setEduDialogOpen(true);
   };
 
   const handleEditExperience = (exp: Experience) => {
-    setEditingExperience(exp);
-    setExpTitle(exp.title);
-    setExpCompany(exp.company);
-    setExpLocation(exp.location);
-    setExpPeriod(exp.period);
-    setExpDescription(exp.description.join("\n"));
-    setExpOrder(exp.display_order);
+    setEditingExperience(exp); setExpTitle(exp.title); setExpCompany(exp.company);
+    setExpLocation(exp.location); setExpPeriod(exp.period);
+    setExpDescription(exp.description.join("\n")); setExpOrder(exp.display_order);
     setExpDialogOpen(true);
   };
 
   const handleEditTech = (tech: TechnologyCategory) => {
-    setEditingTech(tech);
-    setTechTitle(tech.title);
-    setTechIcon(tech.icon);
+    setEditingTech(tech); setTechTitle(tech.title); setTechIcon(tech.icon);
     setTechColor(tech.color);
     setTechSubcategories(tech.subcategories.map(s => `${s.name}:\n${s.technologies.join("\n")}`).join("\n\n"));
-    setTechOrder(tech.display_order);
-    setTechDialogOpen(true);
+    setTechOrder(tech.display_order); setTechDialogOpen(true);
+  };
+
+  const handleEditSocial = (link: SocialLink) => {
+    setEditingSocial(link); setSocialPlatform(link.platform); setSocialUrl(link.url);
+    setSocialIcon(link.icon); setSocialOrder(link.display_order); setSocialDialogOpen(true);
   };
 
   const handleSignOut = async () => {
@@ -408,6 +347,7 @@ const AdminDashboard = () => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "profile", label: "Profile", icon: User },
+    { id: "social", label: "Social Links", icon: Share2 },
     { id: "resume", label: "Resume", icon: FileText },
     { id: "projects", label: "Projects", icon: Code },
     { id: "technology", label: "Technology", icon: Code },
@@ -488,36 +428,20 @@ const AdminDashboard = () => {
             <h1 className="text-2xl lg:text-3xl font-bold mb-6">Dashboard</h1>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Projects</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-primary">{projects.length}</p>
-                </CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Projects</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{projects.length}</p></CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Technologies</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-green-600">{categories.length}</p>
-                </CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Technologies</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{categories.length}</p></CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Education</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-blue-600">{education.length}</p>
-                </CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Education</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{education.length}</p></CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Experience</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-purple-600">{experiences.length}</p>
-                </CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Social Links</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{socialLinks.length}</p></CardContent>
               </Card>
             </div>
           </div>
@@ -542,8 +466,8 @@ const AdminDashboard = () => {
                     <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
                   </div>
                   <div>
-                    <Label>Title</Label>
-                    <Input value={profileTitle} onChange={(e) => setProfileTitle(e.target.value)} required />
+                    <Label>Title / Position</Label>
+                    <Input value={profileTitle} onChange={(e) => setProfileTitle(e.target.value)} placeholder="e.g. Web Developer, Full Stack Developer" required />
                   </div>
                   <div>
                     <Label>Description</Label>
@@ -559,6 +483,92 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Social Links Tab */}
+        {activeTab === "social" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Social Links</h1>
+              <Dialog open={socialDialogOpen} onOpenChange={(open) => { setSocialDialogOpen(open); if (!open) resetSocialForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Social Link</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingSocial ? "Edit Social Link" : "Add Social Link"}</DialogTitle>
+                    <DialogDescription>Add your social media or contact links</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSocialSubmit} className="space-y-4">
+                    <div>
+                      <Label>Platform Name *</Label>
+                      <Input value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} placeholder="e.g. LinkedIn, YouTube, WhatsApp" required />
+                    </div>
+                    <div>
+                      <Label>URL *</Label>
+                      <Input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} placeholder="https://..." required />
+                    </div>
+                    <div>
+                      <Label>Icon</Label>
+                      <Select value={socialIcon} onValueChange={setSocialIcon}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select icon" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ICON_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Display Order</Label>
+                      <Input type="number" value={socialOrder} onChange={(e) => setSocialOrder(parseInt(e.target.value) || 0)} />
+                    </div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingSocial ? "Update" : "Add"} Social Link
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {socialLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : socialLinks.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No social links yet. Add LinkedIn, GitHub, YouTube, WhatsApp, etc.</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {socialLinks.map((link) => (
+                  <Card key={link.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <h3 className="font-bold">{link.platform}</h3>
+                          <p className="text-sm text-muted-foreground truncate max-w-md">{link.url}</p>
+                          <p className="text-xs text-muted-foreground">Icon: {link.icon} • Order: {link.display_order}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditSocial(link)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete {link.platform}?</AlertDialogTitle></AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteSocialLink(link.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Resume Tab */}
         {activeTab === "resume" && (
           <div>
@@ -569,25 +579,13 @@ const AdminDashboard = () => {
                   <div className="p-4 bg-muted rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <p className="font-medium">{resume.file_name}</p>
-                      <a href={resume.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
-                        View Resume
-                      </a>
+                      <a href={resume.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">View Resume</a>
                     </div>
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="w-4 h-4 mr-1" /> Delete
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-1" /> Delete</Button></AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Resume?</AlertDialogTitle>
-                          <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={deleteResume}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>Delete Resume?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={deleteResume}>Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
@@ -615,9 +613,7 @@ const AdminDashboard = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h1 className="text-2xl lg:text-3xl font-bold">Projects</h1>
               <Dialog open={projectDialogOpen} onOpenChange={(open) => { setProjectDialogOpen(open); if (!open) resetProjectForm(); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" /> Add Project</Button>
-                </DialogTrigger>
+                <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Project</Button></DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingProject ? "Edit Project" : "Add Project"}</DialogTitle>
@@ -641,7 +637,6 @@ const AdminDashboard = () => {
                 </DialogContent>
               </Dialog>
             </div>
-
             {projectsLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : projects.length === 0 ? (
@@ -660,10 +655,7 @@ const AdminDashboard = () => {
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Project?</AlertDialogTitle></AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteProject(project.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteProject(project.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
@@ -681,9 +673,7 @@ const AdminDashboard = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h1 className="text-2xl lg:text-3xl font-bold">Technology & Tools</h1>
               <Dialog open={techDialogOpen} onOpenChange={(open) => { setTechDialogOpen(open); if (!open) resetTechForm(); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" /> Add Category</Button>
-                </DialogTrigger>
+                <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Category</Button></DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingTech ? "Edit Category" : "Add Category"}</DialogTitle>
@@ -713,7 +703,6 @@ PHP" />
                 </DialogContent>
               </Dialog>
             </div>
-
             {techLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : categories.length === 0 ? (
@@ -722,9 +711,7 @@ PHP" />
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.map((cat) => (
                   <Card key={cat.id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{cat.title}</CardTitle>
-                    </CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-lg">{cat.title}</CardTitle></CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-4">{cat.subcategories.length} subcategories</p>
                       <div className="flex gap-2">
@@ -733,10 +720,7 @@ PHP" />
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Category?</AlertDialogTitle></AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteCategory(cat.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteCategory(cat.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
@@ -754,9 +738,7 @@ PHP" />
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h1 className="text-2xl lg:text-3xl font-bold">Professional Experience</h1>
               <Dialog open={expDialogOpen} onOpenChange={(open) => { setExpDialogOpen(open); if (!open) resetExperienceForm(); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" /> Add Experience</Button>
-                </DialogTrigger>
+                <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Experience</Button></DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingExperience ? "Edit Experience" : "Add Experience"}</DialogTitle>
@@ -777,7 +759,6 @@ PHP" />
                 </DialogContent>
               </Dialog>
             </div>
-
             {expLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : experiences.length === 0 ? (
@@ -799,10 +780,7 @@ PHP" />
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader><AlertDialogTitle>Delete Experience?</AlertDialogTitle></AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteExperience(exp.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
+                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteExperience(exp.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
@@ -821,9 +799,7 @@ PHP" />
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h1 className="text-2xl lg:text-3xl font-bold">Education</h1>
               <Dialog open={eduDialogOpen} onOpenChange={(open) => { setEduDialogOpen(open); if (!open) resetEducationForm(); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" /> Add Education</Button>
-                </DialogTrigger>
+                <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Education</Button></DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingEducation ? "Edit Education" : "Add Education"}</DialogTitle>
@@ -844,7 +820,6 @@ PHP" />
                 </DialogContent>
               </Dialog>
             </div>
-
             {eduLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : education.length === 0 ? (
@@ -867,10 +842,7 @@ PHP" />
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader><AlertDialogTitle>Delete Education?</AlertDialogTitle></AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteEducation(edu.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
+                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteEducation(edu.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>

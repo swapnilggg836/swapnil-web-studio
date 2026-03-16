@@ -24,7 +24,7 @@ interface SocialLink {
   display_order: number;
 }
 
-const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+const iconMap: Record<string, any> = {
   Linkedin,
   Github,
   Mail,
