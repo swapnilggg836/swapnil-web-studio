@@ -56,26 +56,36 @@ export const useAuth = () => {
       .select("*", { count: "exact", head: true });
     
     if (count && count > 0) {
-      throw new Error("Admin registration is closed. Only one admin allowed.");
+      throw new Error("Admin registration is closed. Only one admin is allowed.");
     }
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
     });
 
     if (error) throw error;
 
-    // Create admin_users entry
-    if (data.user) {
-      const { error: insertError } = await supabase
-        .from("admin_users")
-        .insert({ id: data.user.id, email });
-      
-      if (insertError) throw insertError;
+    if (!data.user) {
+      throw new Error("Signup failed. Please try again.");
+    }
+
+    // Sign in immediately to get an authenticated session
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) throw signInError;
+
+    // Now insert admin_users entry (RLS allows first admin insert)
+    const { error: insertError } = await supabase
+      .from("admin_users")
+      .insert({ id: data.user.id, email });
+    
+    if (insertError) {
+      await supabase.auth.signOut();
+      throw new Error("Failed to create admin account. Please try again.");
     }
 
     return data;
