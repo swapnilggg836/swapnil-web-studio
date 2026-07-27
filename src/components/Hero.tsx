@@ -42,7 +42,17 @@ const Hero = () => {
       ]);
       if (profileRes.data) setProfileInfo(profileRes.data);
       if (resumeRes.data) setResume(resumeRes.data);
-      if (socialRes.data) setSocialLinks(socialRes.data);
+      if (socialRes.data && socialRes.data.length > 0) {
+        setSocialLinks(socialRes.data);
+      } else {
+        setSocialLinks([
+          { id: "1", platform: "GitHub", url: "https://github.com/swapnilggg836", icon: "Github", display_order: 0 },
+          { id: "2", platform: "LinkedIn", url: "https://linkedin.com/in/swapnil-gaikwad", icon: "Linkedin", display_order: 1 },
+          { id: "3", platform: "Gmail", url: "mailto:swapnilg836@gmail.com", icon: "Mail", display_order: 2 },
+          { id: "4", platform: "WhatsApp", url: "https://wa.me/918605887561", icon: "MessageCircle", display_order: 3 },
+          { id: "5", platform: "Outlook", url: "mailto:swapnilg836@outlook.com", icon: "Mail", display_order: 4 },
+        ]);
+      }
     };
     fetchData();
     const t = setTimeout(() => setVisible(true), 100);

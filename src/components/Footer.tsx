@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { Github, Linkedin, Instagram, Mail } from "lucide-react";
+import { useNavigate } from "react";
+import { Github, Linkedin, Mail, MessageCircle } from "lucide-react";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -7,8 +7,9 @@ const Footer = () => {
   const socials = [
     { href: "https://github.com/swapnilggg836", icon: Github, label: "GitHub" },
     { href: "https://linkedin.com/in/swapnil-gaikwad", icon: Linkedin, label: "LinkedIn" },
-    { href: "https://instagram.com/swapnil_gaikwad", icon: Instagram, label: "Instagram" },
-    { href: "mailto:swapnilgaikwad@example.com", icon: Mail, label: "Email" },
+    { href: "mailto:swapnilg836@gmail.com", icon: Mail, label: "Gmail" },
+    { href: "https://wa.me/918605887561", icon: MessageCircle, label: "WhatsApp (8605887561)" },
+    { href: "mailto:swapnilg836@outlook.com", icon: Mail, label: "Outlook" },
   ];
 
   const navLinks = [
@@ -106,8 +107,10 @@ const Footer = () => {
             <div>
               <h4 className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-4">Contact</h4>
               <div className="space-y-2 mb-6">
-                <p className="text-white/40 text-sm">swapnilgaikwad@example.com</p>
-                <p className="text-white/40 text-sm">Nashik, Maharashtra, India</p>
+                <p className="text-white/60 text-sm font-medium">swapnilg836@gmail.com</p>
+                <p className="text-white/40 text-xs">Outlook: swapnilg836@outlook.com</p>
+                <p className="text-white/40 text-xs">WhatsApp: +91 8605887561</p>
+                <p className="text-white/40 text-sm">Yeola, Nashik – 423401, Maharashtra</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span
                     className="w-2 h-2 rounded-full animate-glow-pulse"
@@ -117,7 +120,7 @@ const Footer = () => {
                 </div>
               </div>
               {/* Social icons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {socials.map((social) => {
                   const Icon = social.icon;
                   return (
@@ -162,7 +165,7 @@ const Footer = () => {
               © {new Date().getFullYear()} Swapnil Gaikwad. All rights reserved.
             </p>
             <p className="text-white/20 text-xs">
-              Nashik, Maharashtra 🇮🇳
+              Yeola, Nashik 423401, Maharashtra 🇮🇳
             </p>
           </div>
         </div>

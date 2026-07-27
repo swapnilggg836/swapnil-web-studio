@@ -73,7 +73,7 @@ const Navigation = () => {
           {/* Hire Me CTA */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href="mailto:swapnilgaikwad@example.com"
+              href="mailto:swapnilg836@gmail.com"
               className="btn-pill btn-pill-primary text-sm"
               style={{ padding: "0.5rem 1.25rem" }}
             >
@@ -108,7 +108,7 @@ const Navigation = () => {
                 </button>
               ))}
               <a
-                href="mailto:swapnilgaikwad@example.com"
+                href="mailto:swapnilg836@gmail.com"
                 className="btn-pill btn-pill-primary mt-2 text-sm justify-center"
               >
                 Hire Me
