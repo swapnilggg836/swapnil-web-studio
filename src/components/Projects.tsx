@@ -12,15 +12,25 @@ import paithaniSreeImg from "@/assets/paithani-sree.jpg";
 import salesAnalysisImg from "@/assets/sales-analysis.jpg";
 import smartRoverImg from "@/assets/smart-rover.jpg";
 
-const fallbackProjects = [
-  { id: "1", title: "Tour & Travel", image_url: tourTravelImg, description: ["Information portal for tourists", "Built with HTML, CSS, and PHP", "XAMPP server backend"], tech_stack: "HTML, CSS, PHP", github_link: "https://github.com/your-username/tour-travel", live_link: "" },
-  { id: "2", title: "Digital Board", image_url: digitalBoardImg, description: ["Scrolling Digital Display Board", "IoT Based, C++ and IC used", "C++ library used"], tech_stack: "C++, IoT", github_link: "https://github.com/your-username/digital-board", live_link: "" },
-  { id: "3", title: "Sentiment Analysis", image_url: sentimentAnalysisImg, description: ["Analyzes YouTube comment sentiment", "Built with Python + Flask", "Shows positive, negative & neutral graphs"], tech_stack: "Python, Flask", github_link: "https://github.com/your-username/sentiment-analysis", live_link: "" },
-  { id: "4", title: "Tiffin Elite", image_url: tiffinEliteImg, description: ["Full-stack tiffin service app", "PHP, AJAX, HTML, CSS + MySQL", "Login/Signup and ordering system"], tech_stack: "PHP, AJAX, MySQL", github_link: "https://github.com/your-username/tiffin-elite", live_link: "" },
-  { id: "5", title: "Chatbot", image_url: chatbotImg, description: ["Interactive chatbot with natural flow", "HTML, CSS, Flask (Python), Node.js", "Flask-based API for backend logic"], tech_stack: "Flask, Python, Node.js", github_link: "https://github.com/your-username/chatbot-flask", live_link: "" },
-  { id: "6", title: "Paithani Sree", image_url: paithaniSreeImg, description: ["E-commerce site for Paithani sarees", "React.js, Next.js, Tailwind CSS", "Product listings with admin panel"], tech_stack: "React, Next.js, Tailwind", github_link: "https://github.com/your-username/paithani-sree", live_link: "https://paithani-sree.com" },
-  { id: "7", title: "Electronics Sales Analysis", image_url: salesAnalysisImg, description: ["Business data analysis with Power BI", "Multiple charts and dashboards", "Customer segmentation & sales trends"], tech_stack: "Power BI, Excel", github_link: "https://github.com/your-username/sales-analysis", live_link: "" },
-  { id: "8", title: "Smart Rover", image_url: smartRoverImg, description: ["Arduino-based rover for competitions", "Ultrasonic & Color sensors integrated", "Obstacle detection and automation"], tech_stack: "Arduino, C++, IoT", github_link: "https://github.com/your-username/smart-rover", live_link: "" },
+interface ProjectItem {
+  id: string;
+  title: string;
+  image_url?: string | null;
+  description: string[] | string;
+  tech_stack: string;
+  github_link?: string | null;
+  live_link?: string | null;
+}
+
+const fallbackProjects: ProjectItem[] = [
+  { id: "1", title: "Tour & Travel", image_url: tourTravelImg, description: ["Information portal for tourists", "Built with HTML, CSS, and PHP", "XAMPP server backend"], tech_stack: "HTML, CSS, PHP", github_link: "https://github.com/swapnilggg836/tour-travel", live_link: "" },
+  { id: "2", title: "Digital Board", image_url: digitalBoardImg, description: ["Scrolling Digital Display Board", "IoT Based, C++ and IC used", "C++ library used"], tech_stack: "C++, IoT", github_link: "https://github.com/swapnilggg836/digital-board", live_link: "" },
+  { id: "3", title: "Sentiment Analysis", image_url: sentimentAnalysisImg, description: ["Analyzes YouTube comment sentiment", "Built with Python + Flask", "Shows positive, negative & neutral graphs"], tech_stack: "Python, Flask", github_link: "https://github.com/swapnilggg836/sentiment-analysis", live_link: "" },
+  { id: "4", title: "Tiffin Elite", image_url: tiffinEliteImg, description: ["Full-stack tiffin service app", "PHP, AJAX, HTML, CSS + MySQL", "Login/Signup and ordering system"], tech_stack: "PHP, AJAX, MySQL", github_link: "https://github.com/swapnilggg836/tiffin-elite", live_link: "" },
+  { id: "5", title: "Chatbot", image_url: chatbotImg, description: ["Interactive chatbot with natural flow", "HTML, CSS, Flask (Python), Node.js", "Flask-based API for backend logic"], tech_stack: "Flask, Python, Node.js", github_link: "https://github.com/swapnilggg836/chatbot-flask", live_link: "" },
+  { id: "6", title: "Paithani Sree", image_url: paithaniSreeImg, description: ["E-commerce site for Paithani sarees", "React.js, Next.js, Tailwind CSS", "Product listings with admin panel"], tech_stack: "React, Next.js, Tailwind", github_link: "https://github.com/swapnilggg836/paithani-sree", live_link: "https://paithani-sree.com" },
+  { id: "7", title: "Electronics Sales Analysis", image_url: salesAnalysisImg, description: ["Business data analysis with Power BI", "Multiple charts and dashboards", "Customer segmentation & sales trends"], tech_stack: "Power BI, Excel", github_link: "https://github.com/swapnilggg836/sales-analysis", live_link: "" },
+  { id: "8", title: "Smart Rover", image_url: smartRoverImg, description: ["Arduino-based rover for competitions", "Ultrasonic & Color sensors integrated", "Obstacle detection and automation"], tech_stack: "Arduino, C++, IoT", github_link: "https://github.com/swapnilggg836/smart-rover", live_link: "" },
 ];
 
 const ProjectCard = ({
@@ -28,7 +38,7 @@ const ProjectCard = ({
   index,
   isFlagship,
 }: {
-  project: (typeof fallbackProjects)[0];
+  project: ProjectItem;
   index: number;
   isFlagship: boolean;
 }) => {
@@ -45,7 +55,13 @@ const ProjectCard = ({
   }, []);
 
   const num = String(index + 1).padStart(2, "0");
-  const tags = project.tech_stack.split(",").map(t => t.trim());
+  const rawTech = typeof project.tech_stack === "string" ? project.tech_stack : "";
+  const tags = rawTech ? rawTech.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const descList = Array.isArray(project.description)
+    ? project.description
+    : typeof project.description === "string"
+    ? [project.description]
+    : [];
 
   return (
     <div
@@ -66,7 +82,7 @@ const ProjectCard = ({
           }}
         >
           <div className="rounded-2xl overflow-hidden" style={{ background: "#0d0d0d" }}>
-            <CardInner project={project} num={num} tags={tags} isFlagship={isFlagship} />
+            <CardInner project={project} num={num} tags={tags} descList={descList} isFlagship={isFlagship} />
           </div>
         </div>
       ) : (
@@ -74,7 +90,7 @@ const ProjectCard = ({
           className="rounded-2xl overflow-hidden glass-card"
           style={{ background: "rgba(255,255,255,0.03)" }}
         >
-          <CardInner project={project} num={num} tags={tags} isFlagship={isFlagship} />
+          <CardInner project={project} num={num} tags={tags} descList={descList} isFlagship={isFlagship} />
         </div>
       )}
     </div>
@@ -85,11 +101,13 @@ const CardInner = ({
   project,
   num,
   tags,
+  descList,
   isFlagship,
 }: {
-  project: (typeof fallbackProjects)[0];
+  project: ProjectItem;
   num: string;
   tags: string[];
+  descList: string[];
   isFlagship: boolean;
 }) => (
   <>
@@ -97,7 +115,7 @@ const CardInner = ({
     <div className="relative overflow-hidden" style={{ height: "200px" }}>
       <img
         src={project.image_url || "/placeholder.svg"}
-        alt={project.title}
+        alt={project.title || "Project"}
         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
       <div
@@ -154,30 +172,28 @@ const CardInner = ({
 
       {/* Description */}
       <div className="space-y-1.5 mb-5">
-        {project.description.slice(0, 3).map((desc, i) => (
+        {descList.slice(0, 3).map((desc, i) => (
           <div key={i} className="flex items-start gap-2">
             <span
               className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{ background: "hsl(199,89%,48%)" }}
             />
-            <span className="text-white/50 text-sm leading-relaxed">{desc}</span>
+            <span className="text-white/60 text-xs leading-relaxed">{desc}</span>
           </div>
         ))}
       </div>
 
       {/* Links */}
-      <div className="flex gap-3">
+      <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         {project.github_link && (
           <a
             href={project.github_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-pill btn-pill-outline flex-1 justify-center text-sm"
-            style={{ padding: "0.5rem 1rem" }}
-            aria-label={`GitHub for ${project.title}`}
+            className="btn-pill btn-pill-outline text-xs flex-1 justify-center py-2"
           >
-            <Github size={15} />
-            Code
+            <Github size={13} />
+            GitHub
           </a>
         )}
         {project.live_link && (
@@ -185,12 +201,10 @@ const CardInner = ({
             href={project.live_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-pill btn-pill-primary flex-1 justify-center text-sm"
-            style={{ padding: "0.5rem 1rem" }}
-            aria-label={`Live demo for ${project.title}`}
+            className="btn-pill btn-pill-primary text-xs flex-1 justify-center py-2"
           >
-            <ExternalLink size={15} />
-            Live
+            <ExternalLink size={13} />
+            Live Demo
           </a>
         )}
       </div>
@@ -200,30 +214,38 @@ const CardInner = ({
 
 const Projects = () => {
   const { projects: dbProjects, loading } = useProjects();
-  const projects = dbProjects.length > 0 ? dbProjects : fallbackProjects;
+  const [projectsList, setProjectsList] = useState<ProjectItem[]>(fallbackProjects);
   const sectionRef = useRef<HTMLElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold: 0.05 }
+      ([entry]) => { if (entry.isIntersecting) setHeaderVisible(true); },
+      { threshold: 0.1 }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (dbProjects && dbProjects.length > 0) {
+      setProjectsList(dbProjects as any);
+    } else {
+      setProjectsList(fallbackProjects);
+    }
+  }, [dbProjects]);
 
   return (
     <section
       id="projects"
       ref={sectionRef}
       className="relative py-28 overflow-hidden"
-      style={{ background: "#0a0a0a" }}
+      style={{ background: "#050505" }}
     >
       {/* Background grid */}
-      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.35 }} />
+      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.5 }} />
 
-      {/* Decorative background text */}
+      {/* Parallax background text */}
       <div
         className="decorative-bg-text pointer-events-none select-none"
         style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
@@ -235,42 +257,42 @@ const Projects = () => {
       <div
         className="absolute pointer-events-none"
         style={{
-          top: "-100px", left: "-100px",
+          top: "30%", left: "-10%",
           width: "600px", height: "600px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, hsl(199,89%,48%,0.06) 0%, transparent 70%)",
-          filter: "blur(60px)",
+          background: "radial-gradient(circle, hsl(199,89%,48%,0.07) 0%, transparent 70%)",
+          filter: "blur(50px)",
         }}
       />
 
       <div className="container mx-auto px-6 relative z-10">
-        {/* Header */}
+        {/* Section Header */}
         <div
-          className="text-center mb-16"
+          className="text-center mb-16 transition-all duration-700"
           style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0)" : "translateY(24px)",
-            transition: "all 0.6s ease",
+            opacity: headerVisible ? 1 : 0,
+            transform: headerVisible ? "translateY(0)" : "translateY(24px)",
           }}
         >
           <div className="section-badge justify-center mx-auto w-fit mb-4">
-            Portfolio
+            Featured Creations
           </div>
-          <h2 className="section-title mb-4">Featured Projects</h2>
+          <h2 className="section-title mb-4">Selected Projects</h2>
           <p className="section-subtitle mx-auto text-center">
-            A showcase of my technical journey through internships and academic projects
+            A showcase of web applications, AI projects, and engineering solutions I've built
           </p>
         </div>
 
+        {/* Loading */}
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {projectsList.map((project, index) => (
               <ProjectCard
-                key={project.id}
+                key={project.id || index}
                 project={project}
                 index={index}
                 isFlagship={index === 0}

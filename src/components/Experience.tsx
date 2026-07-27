@@ -8,7 +8,7 @@ interface ExperienceItem {
   company: string;
   location: string;
   period: string;
-  description: string[];
+  description: string[] | string;
   display_order: number;
 }
 
@@ -61,6 +61,12 @@ const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) 
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  const descList = Array.isArray(exp.description)
+    ? exp.description
+    : typeof exp.description === "string"
+    ? [exp.description]
+    : [];
 
   return (
     <div ref={ref} className="relative flex gap-6 md:gap-8">
@@ -133,7 +139,7 @@ const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) 
 
         {/* Bullet points */}
         <div className="space-y-2.5">
-          {exp.description.map((item, i) => (
+          {descList.map((item, i) => (
             <div key={i} className="flex items-start gap-3">
               <CheckCircle2
                 size={16}
@@ -241,7 +247,7 @@ const Experience = () => {
         ) : (
           <div className="max-w-3xl mx-auto">
             {experiences.map((exp, index) => (
-              <ExperienceCard key={exp.id} exp={exp} index={index} />
+              <ExperienceCard key={exp.id || index} exp={exp} index={index} />
             ))}
           </div>
         )}
