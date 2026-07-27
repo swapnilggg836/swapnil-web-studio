@@ -9,6 +9,7 @@ import { useExperience, Experience } from "@/hooks/useExperience";
 import { useProfileInfo } from "@/hooks/useProfileInfo";
 import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
 import { useAchievements, Achievement } from "@/hooks/useAchievements";
+import { useSkills, Skill } from "@/hooks/useSkills";
 import { ImageCropperModal } from "@/components/ImageCropperModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2, Sliders, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -68,6 +69,7 @@ const AdminDashboard = () => {
   const { profileInfo, loading: profileLoading, uploadProfileImage, saveProfileInfo } = useProfileInfo();
   const { socialLinks, loading: socialLoading, addSocialLink, updateSocialLink, deleteSocialLink } = useSocialLinks();
   const { achievements, loading: achLoading, addAchievement, updateAchievement, deleteAchievement, uploadAchievementMedia } = useAchievements();
+  const { skills, loading: skillsLoading, addSkill, updateSkill, deleteSkill } = useSkills();
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -150,6 +152,14 @@ const AdminDashboard = () => {
   const [achMediaFile, setAchMediaFile] = useState<File | null>(null);
   const [achImagePreview, setAchImagePreview] = useState<string | null>(null);
 
+  // Skill form state
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [skillDialogOpen, setSkillDialogOpen] = useState(false);
+  const [skillName, setSkillName] = useState("");
+  const [skillLevel, setSkillLevel] = useState(80);
+  const [skillCategory, setSkillCategory] = useState("Frontend");
+  const [skillOrder, setSkillOrder] = useState(0);
+
   useEffect(() => {
     if (!authLoading && !isAdmin) {
       navigate("/admin/login");
@@ -197,6 +207,11 @@ const AdminDashboard = () => {
     setAchDate(""); setAchDescription(""); setAchVideoUrl("");
     setAchLinkUrl(""); setAchOrder(0); setAchMediaFile(null);
     setAchImagePreview(null); setEditingAchievement(null);
+  };
+
+  const resetSkillForm = () => {
+    setSkillName(""); setSkillLevel(80); setSkillCategory("Frontend");
+    setSkillOrder(0); setEditingSkill(null);
   };
 
   // Handle functions
@@ -348,6 +363,25 @@ const AdminDashboard = () => {
     } finally { setFormLoading(false); }
   };
 
+  const handleSkillSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    try {
+      const data = { name: skillName, level: skillLevel, category: skillCategory, display_order: skillOrder };
+      if (editingSkill) await updateSkill(editingSkill.id, data);
+      else await addSkill(data);
+      resetSkillForm(); setSkillDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally { setFormLoading(false); }
+  };
+
+  const handleEditSkill = (skill: Skill) => {
+    setEditingSkill(skill); setSkillName(skill.name);
+    setSkillLevel(skill.level); setSkillCategory(skill.category);
+    setSkillOrder(skill.display_order || 0); setSkillDialogOpen(true);
+  };
+
   const handleEditAchievement = (ach: Achievement) => {
     setEditingAchievement(ach);
     setAchTitle(ach.title);
@@ -425,6 +459,7 @@ const AdminDashboard = () => {
     { id: "social", label: "Social Links", icon: Share2 },
     { id: "resume", label: "Resume", icon: FileText },
     { id: "projects", label: "Projects", icon: Code },
+    { id: "skills", label: "Skills", icon: Sliders },
     { id: "technology", label: "Technology", icon: Code },
     { id: "experience", label: "Experience", icon: Briefcase },
     { id: "education", label: "Education", icon: GraduationCap },
@@ -514,6 +549,10 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Education</CardTitle></CardHeader>
                 <CardContent><p className="text-3xl font-bold text-primary">{education.length}</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Skills</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{skills.length}</p></CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Social Links</CardTitle></CardHeader>
@@ -1071,6 +1110,105 @@ PHP" />
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteAchievement(ach.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        {/* Skills Tab */}
+        {activeTab === "skills" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Skills Management</h1>
+              <Dialog open={skillDialogOpen} onOpenChange={(open) => { setSkillDialogOpen(open); if (!open) resetSkillForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Skill</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{editingSkill ? "Edit Skill" : "Add Skill"}</DialogTitle>
+                    <DialogDescription>Add or update technical skills and proficiency level</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSkillSubmit} className="space-y-4">
+                    <div>
+                      <Label>Skill Name *</Label>
+                      <Input value={skillName} onChange={(e) => setSkillName(e.target.value)} placeholder="e.g. React.js, Python, C++" required />
+                    </div>
+                    <div>
+                      <Label>Proficiency Level (%) * ({skillLevel}%)</Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={skillLevel}
+                          onChange={(e) => setSkillLevel(Math.min(100, Math.max(1, parseInt(e.target.value) || 0)))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Category *</Label>
+                      <Select value={skillCategory} onValueChange={setSkillCategory}>
+                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Frontend">Frontend</SelectItem>
+                          <SelectItem value="Backend">Backend</SelectItem>
+                          <SelectItem value="Languages">Languages</SelectItem>
+                          <SelectItem value="Database">Database</SelectItem>
+                          <SelectItem value="AI/ML">AI/ML</SelectItem>
+                          <SelectItem value="Tools">Tools</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Display Order</Label>
+                      <Input type="number" value={skillOrder} onChange={(e) => setSkillOrder(parseInt(e.target.value) || 0)} />
+                    </div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingSkill ? "Update" : "Add"} Skill
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {skillsLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : skills.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No skills added yet. Click Add Skill to add your technical skills.</CardContent></Card>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {skills.map((s) => (
+                  <Card key={s.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start gap-4 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                              {s.category}
+                            </span>
+                            <span className="font-bold">{s.name}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-primary">{s.level}%</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditSkill(s)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete Skill?</AlertDialogTitle></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteSkill(s.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                      <div className="w-full bg-muted h-2 rounded-full overflow-hidden mt-2">
+                        <div className="bg-primary h-full rounded-full" style={{ width: `${s.level}%` }} />
                       </div>
                     </CardContent>
                   </Card>

@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-
-const skills = [
-  { name: "HTML", level: 90, category: "Frontend" },
-  { name: "CSS", level: 80, category: "Frontend" },
-  { name: "JavaScript", level: 65, category: "Frontend" },
-  { name: "Python", level: 75, category: "Backend" },
-  { name: "C++", level: 70, category: "Languages" },
-  { name: "MySQL", level: 70, category: "Database" },
-  { name: "React.js", level: 60, category: "Frontend" },
-  { name: "PHP", level: 40, category: "Backend" },
-];
+import { useSkills, Skill } from "@/hooks/useSkills";
+import { Loader2 } from "lucide-react";
 
 const SkillBar = ({ name, level, category, index }: { name: string; level: number; category: string; index: number }) => {
   const [animated, setAnimated] = useState(false);
@@ -19,11 +10,11 @@ const SkillBar = ({ name, level, category, index }: { name: string; level: numbe
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setAnimated(true), index * 80);
+          setTimeout(() => setAnimated(true), index * 60);
           observer.disconnect();
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -54,7 +45,7 @@ const SkillBar = ({ name, level, category, index }: { name: string; level: numbe
           className="skill-bar-fill"
           style={{
             width: animated ? `${level}%` : "0%",
-            transition: `width 1.3s cubic-bezier(0.25, 1, 0.5, 1) ${index * 80}ms`,
+            transition: `width 1.3s cubic-bezier(0.25, 1, 0.5, 1) ${index * 60}ms`,
           }}
         />
       </div>
@@ -63,6 +54,7 @@ const SkillBar = ({ name, level, category, index }: { name: string; level: numbe
 };
 
 const Skills = () => {
+  const { skills, loading } = useSkills();
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -124,49 +116,56 @@ const Skills = () => {
           </p>
         </div>
 
-        {/* Skills grid */}
-        <div className="max-w-4xl mx-auto">
-          <div
-            className="glass-card p-8 md:p-12"
-            style={{
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(30px)",
-              transition: "all 0.7s ease 0.1s",
-            }}
-          >
-            <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-              {skills.map((skill, index) => (
-                <SkillBar key={skill.name} {...skill} index={index} />
+        {/* Loading */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
+          </div>
+        ) : (
+          /* Skills grid */
+          <div className="max-w-4xl mx-auto">
+            <div
+              className="glass-card p-8 md:p-12"
+              style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(30px)",
+                transition: "all 0.7s ease 0.1s",
+              }}
+            >
+              <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
+                {skills.map((skill, index) => (
+                  <SkillBar key={skill.id || skill.name} name={skill.name} level={skill.level} category={skill.category} index={index} />
+                ))}
+              </div>
+            </div>
+
+            {/* Extra stats */}
+            <div
+              className="grid grid-cols-3 gap-4 mt-8"
+              style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(20px)",
+                transition: "all 0.7s ease 0.3s",
+              }}
+            >
+              {[
+                { value: `${skills.length}+`, label: "Skills Mastered" },
+                { value: "8+", label: "Projects Built" },
+                { value: "3+", label: "Years Learning" },
+              ].map((stat) => (
+                <div key={stat.label} className="glass-card p-5 text-center">
+                  <div
+                    className="font-black text-3xl mb-1"
+                    style={{ color: "hsl(199,89%,48%)" }}
+                  >
+                    {stat.value}
+                  </div>
+                  <div className="text-white/40 text-sm">{stat.label}</div>
+                </div>
               ))}
             </div>
           </div>
-
-          {/* Extra stats */}
-          <div
-            className="grid grid-cols-3 gap-4 mt-8"
-            style={{
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(20px)",
-              transition: "all 0.7s ease 0.3s",
-            }}
-          >
-            {[
-              { value: "8+", label: "Projects Built" },
-              { value: "5+", label: "Technologies" },
-              { value: "3+", label: "Years Learning" },
-            ].map((stat) => (
-              <div key={stat.label} className="glass-card p-5 text-center">
-                <div
-                  className="font-black text-3xl mb-1"
-                  style={{ color: "hsl(199,89%,48%)" }}
-                >
-                  {stat.value}
-                </div>
-                <div className="text-white/40 text-sm">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
