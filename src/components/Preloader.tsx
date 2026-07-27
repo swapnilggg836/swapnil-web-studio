@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const Preloader = ({ onComplete }: { onComplete: () => void }) => {
   const [hiding, setHiding] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep ref updated without re-triggering timer
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
+    // Single timer execution on mount
     const timer = setTimeout(() => {
       setHiding(true);
-      setTimeout(onComplete, 600);
-    }, 2200);
+      setTimeout(() => {
+        onCompleteRef.current();
+      }, 600);
+    }, 1800);
+
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, []); // Empty dependency array ensures timer is NEVER reset by re-renders
 
   return (
     <div
@@ -21,8 +31,10 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "transform 0.6s cubic-bezier(0.77, 0, 0.175, 1)",
+        transition: "transform 0.6s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.6s ease",
         transform: hiding ? "translateY(-100%)" : "translateY(0)",
+        opacity: hiding ? 0 : 1,
+        pointerEvents: hiding ? "none" : "auto",
       }}
     >
       {/* Grid background */}
@@ -109,7 +121,7 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
               height: "100%",
               background: "linear-gradient(90deg, hsl(199,89%,48%), hsl(199,89%,70%))",
               borderRadius: "9999px",
-              animation: "skillFill 2s ease forwards",
+              animation: "skillFill 1.8s ease forwards",
               width: "0%",
             }}
           />
