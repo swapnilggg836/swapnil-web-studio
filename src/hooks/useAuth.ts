@@ -120,6 +120,81 @@ export const useAuth = () => {
     if (error) throw error;
   };
 
+  // OTP Password Reset Helpers
+  const sendPasswordResetOTP = async (email: string) => {
+    // 1. Verify admin email exists
+    const { data: adminData } = await supabase
+      .from("admin_users")
+      .select("email")
+      .eq("email", email.trim())
+      .maybeSingle();
+
+    if (!adminData) {
+      throw new Error("No registered admin user found with this email.");
+    }
+
+    // 2. Trigger Supabase reset email (if SMTP configured)
+    await supabase.auth.resetPasswordForEmail(email.trim()).catch(() => {});
+
+    // 3. Generate 6-digit OTP code & store in session with 10min expiry
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+    sessionStorage.setItem(`otp_${email.trim()}`, JSON.stringify({ code: otpCode, expiresAt }));
+
+    return { otpCode };
+  };
+
+  const verifyOTPAndResetPassword = async (email: string, enteredOtp: string, newPassword: string) => {
+    const trimmedEmail = email.trim();
+    const trimmedOtp = enteredOtp.trim();
+
+    // Check stored OTP code
+    const storedData = sessionStorage.getItem(`otp_${trimmedEmail}`);
+    let isValidOtp = false;
+
+    if (storedData) {
+      const { code, expiresAt } = JSON.parse(storedData);
+      if (Date.now() < expiresAt && code === trimmedOtp) {
+        isValidOtp = true;
+      }
+    }
+
+    // Try Supabase OTP verification as fallback
+    if (!isValidOtp) {
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        email: trimmedEmail,
+        token: trimmedOtp,
+        type: "recovery",
+      });
+      if (!otpError) isValidOtp = true;
+    }
+
+    if (!isValidOtp) {
+      throw new Error("Invalid or expired 6-digit OTP code. Please check and try again.");
+    }
+
+    // If session is present, update user password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      // If no active session, sign in or notify user
+      throw new Error(`Failed to update password: ${updateError.message}`);
+    }
+
+    // Clear OTP
+    sessionStorage.removeItem(`otp_${trimmedEmail}`);
+    return true;
+  };
+
+  const updateUserPassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+  };
+
   return {
     user,
     session,
@@ -128,5 +203,8 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    sendPasswordResetOTP,
+    verifyOTPAndResetPassword,
+    updateUserPassword,
   };
 };

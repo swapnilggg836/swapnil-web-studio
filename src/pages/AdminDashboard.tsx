@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2, Sliders, Award } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2, Sliders, Award, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -60,7 +60,7 @@ const ICON_OPTIONS = [
 ];
 
 const AdminDashboard = () => {
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
+  const { user, isAdmin, loading: authLoading, signOut, updateUserPassword } = useAuth();
   const { projects, loading: projectsLoading, addProject, updateProject, deleteProject, uploadImage } = useProjects();
   const { resume, loading: resumeLoading, uploadResume, saveResume, deleteResume } = useResume();
   const { categories, loading: techLoading, addCategory, updateCategory, deleteCategory } = useTechnology();
@@ -159,6 +159,11 @@ const AdminDashboard = () => {
   const [skillLevel, setSkillLevel] = useState(80);
   const [skillCategory, setSkillCategory] = useState("Frontend");
   const [skillOrder, setSkillOrder] = useState(0);
+
+  // Password change state
+  const [newDashPassword, setNewDashPassword] = useState("");
+  const [confirmDashPassword, setConfirmDashPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -380,6 +385,29 @@ const AdminDashboard = () => {
     setEditingSkill(skill); setSkillName(skill.name);
     setSkillLevel(skill.level); setSkillCategory(skill.category);
     setSkillOrder(skill.display_order || 0); setSkillDialogOpen(true);
+  };
+
+  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newDashPassword !== confirmDashPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (newDashPassword.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await updateUserPassword(newDashPassword);
+      setNewDashPassword("");
+      setConfirmDashPassword("");
+      toast({ title: "Success", description: "Admin password updated successfully!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleEditAchievement = (ach: Achievement) => {
@@ -607,6 +635,44 @@ const AdminDashboard = () => {
                   <Button type="submit" disabled={formLoading}>
                     {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     Save Profile
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            <Card className="max-w-2xl mt-6">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-primary" /> Security & Password
+                </CardTitle>
+                <CardDescription>Update your master admin account password</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+                  <div>
+                    <Label>New Password</Label>
+                    <Input
+                      type="password"
+                      value={newDashPassword}
+                      onChange={(e) => setNewDashPassword(e.target.value)}
+                      minLength={6}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Confirm New Password</Label>
+                    <Input
+                      type="password"
+                      value={confirmDashPassword}
+                      onChange={(e) => setConfirmDashPassword(e.target.value)}
+                      minLength={6}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={passwordLoading}>
+                    {passwordLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Update Password
                   </Button>
                 </form>
               </CardContent>
