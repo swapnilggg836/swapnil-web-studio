@@ -173,12 +173,17 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (profileInfo) {
-      setProfileName(profileInfo.name);
-      setProfileTitle(profileInfo.title);
-      setProfileDescription(profileInfo.description);
-      setProfileImagePreview(profileInfo.profile_image_url);
+      setProfileName(profileInfo.name || "Swapnil Gaikwad");
+      setProfileTitle(profileInfo.title || "Web Developer & AI Engineer");
+      setProfileDescription(profileInfo.description || "To create dynamic, responsive, and secure web applications that enhance user experience and meet business goals.");
+      setProfileImagePreview(profileInfo.profile_image_url || "/profile-photo.jpg");
+    } else if (!profileLoading) {
+      setProfileName("Swapnil Gaikwad");
+      setProfileTitle("Web Developer & AI Engineer");
+      setProfileDescription("To create dynamic, responsive, and secure web applications that enhance user experience and meet business goals.");
+      setProfileImagePreview("/profile-photo.jpg");
     }
-  }, [profileInfo]);
+  }, [profileInfo, profileLoading]);
 
   // Reset functions
   const resetProjectForm = () => {
@@ -607,16 +612,19 @@ const AdminDashboard = () => {
                     {profileImagePreview && (
                       <div className="mt-3 flex items-center gap-4">
                         <img src={profileImagePreview} alt="Profile" className="w-28 h-28 rounded-full object-cover border-2 border-primary/50 shadow-md" />
-                        {rawImageSrc && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCropperOpen(true)}
-                          >
-                            Adjust Crop / Reposition
-                          </Button>
-                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (!rawImageSrc && profileImagePreview) {
+                              setRawImageSrc(profileImagePreview);
+                            }
+                            setCropperOpen(true);
+                          }}
+                        >
+                          Adjust Crop / Reposition
+                        </Button>
                       </div>
                     )}
                   </div>
