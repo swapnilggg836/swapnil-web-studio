@@ -10,23 +10,29 @@ export const useAuth = () => {
 
   useEffect(() => {
     // Set up auth state listener FIRST
+    const checkAdmin = async (userId: string) => {
+      const { data } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+      setIsAdmin(!!data);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
-          // Check if user is admin
-          const { data } = await supabase
-            .from("admin_users")
-            .select("id")
-            .eq("id", session.user.id)
-            .maybeSingle();
-          setIsAdmin(!!data);
+          // Defer any Supabase call out of the auth callback to avoid deadlocks
+          setTimeout(() => {
+            checkAdmin(session.user.id).finally(() => setLoading(false));
+          }, 0);
         } else {
           setIsAdmin(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -34,14 +40,9 @@ export const useAuth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        const { data } = await supabase
-          .from("admin_users")
-          .select("id")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(!!data);
+        await checkAdmin(session.user.id);
       }
       setLoading(false);
     });
