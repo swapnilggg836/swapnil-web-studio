@@ -185,12 +185,11 @@ const TechnologyTools = () => {
                 className="glass-card cursor-pointer group"
                 style={{
                   opacity: visible ? 1 : 0,
-                  transform: visible ? "translateY(0)" : "translateY(24px)",
                   transition: `all 0.5s ease ${i * 60}ms`,
                   background: isActive ? accent.bg : "rgba(255,255,255,0.03)",
                   borderColor: isActive ? accent.border : "rgba(255,255,255,0.07)",
                   boxShadow: isActive ? `0 0 30px ${accent.glow}, 0 8px 32px rgba(0,0,0,0.4)` : undefined,
-                  transform: isActive ? "translateY(-4px) scale(1.02)" : undefined,
+                  transform: isActive ? "translateY(-4px) scale(1.02)" : visible ? "translateY(0)" : "translateY(24px)",
                 }}
               >
                 <div className="p-6 flex flex-col items-center text-center gap-4">

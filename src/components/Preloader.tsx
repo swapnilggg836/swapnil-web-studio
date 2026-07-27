@@ -1,25 +1,22 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 const Preloader = ({ onComplete }: { onComplete: () => void }) => {
   const [hiding, setHiding] = useState(false);
-  const onCompleteRef = useRef(onComplete);
-
-  // Keep ref updated without re-triggering timer
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-  }, [onComplete]);
 
   useEffect(() => {
-    // Single timer execution on mount
-    const timer = setTimeout(() => {
+    const t1 = setTimeout(() => {
       setHiding(true);
-      setTimeout(() => {
-        onCompleteRef.current();
-      }, 600);
-    }, 1800);
+    }, 1200);
 
-    return () => clearTimeout(timer);
-  }, []); // Empty dependency array ensures timer is NEVER reset by re-renders
+    const t2 = setTimeout(() => {
+      onComplete();
+    }, 1700);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
 
   return (
     <div
@@ -31,7 +28,7 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "transform 0.6s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.6s ease",
+        transition: "transform 0.5s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.5s ease",
         transform: hiding ? "translateY(-100%)" : "translateY(0)",
         opacity: hiding ? 0 : 1,
         pointerEvents: hiding ? "none" : "auto",
@@ -52,22 +49,22 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
       <div
         style={{
           position: "absolute",
-          width: "600px",
-          height: "600px",
+          width: "500px",
+          height: "500px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, hsl(199,89%,48%,0.12) 0%, transparent 70%)",
+          background: "radial-gradient(circle, hsl(199,89%,48%,0.15) 0%, transparent 70%)",
           pointerEvents: "none",
         }}
       />
 
       <div style={{ position: "relative", textAlign: "center" }}>
-        {/* Ghost text */}
+        {/* Brand name */}
         <div
           style={{
-            fontSize: "clamp(3rem, 12vw, 9rem)",
+            fontSize: "clamp(3rem, 10vw, 7rem)",
             fontWeight: 900,
             letterSpacing: "-0.04em",
-            color: "rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.1)",
             fontFamily: "'Inter', sans-serif",
             textTransform: "uppercase",
             lineHeight: 1,
@@ -75,14 +72,13 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
           }}
         >
           Swapnil
-          {/* Colored fill overlay */}
           <div
             style={{
               position: "absolute",
               inset: 0,
               color: "hsl(199, 89%, 48%)",
               clipPath: "inset(0 100% 0 0)",
-              animation: "preloaderWipe 1.5s cubic-bezier(0.77, 0, 0.175, 1) 0.3s forwards",
+              animation: "preloaderWipe 1.2s cubic-bezier(0.77, 0, 0.175, 1) 0.1s forwards",
               fontWeight: 900,
             }}
           >
@@ -94,37 +90,13 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
         <div
           style={{
             marginTop: "1rem",
-            color: "rgba(255,255,255,0.3)",
-            fontSize: "0.85rem",
+            color: "rgba(255,255,255,0.4)",
+            fontSize: "0.8rem",
             letterSpacing: "0.3em",
             textTransform: "uppercase",
-            animation: "fadeIn 0.5s ease 0.8s both",
           }}
         >
           Web Developer & AI Engineer
-        </div>
-
-        {/* Loading bar */}
-        <div
-          style={{
-            marginTop: "2rem",
-            width: "200px",
-            height: "2px",
-            background: "rgba(255,255,255,0.1)",
-            borderRadius: "9999px",
-            overflow: "hidden",
-            margin: "2rem auto 0",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              background: "linear-gradient(90deg, hsl(199,89%,48%), hsl(199,89%,70%))",
-              borderRadius: "9999px",
-              animation: "skillFill 1.8s ease forwards",
-              width: "0%",
-            }}
-          />
         </div>
       </div>
     </div>
