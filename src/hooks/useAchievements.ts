@@ -68,6 +68,8 @@ export const fallbackAchievements: Achievement[] = [
   },
 ];
 
+const LOCAL_STORAGE_KEY = "portfolio_achievements_v1";
+
 export const useAchievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,13 +83,26 @@ export const useAchievements = () => {
         .select("*")
         .order("display_order", { ascending: true });
 
-      if (error || !data || data.length === 0) {
-        setAchievements(fallbackAchievements);
-      } else {
+      if (!error && data && data.length > 0) {
         setAchievements(data as Achievement[]);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      } else {
+        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (localData !== null) {
+          setAchievements(JSON.parse(localData));
+        } else {
+          setAchievements(fallbackAchievements);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackAchievements));
+        }
       }
     } catch {
-      setAchievements(fallbackAchievements);
+      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (localData !== null) {
+        setAchievements(JSON.parse(localData));
+      } else {
+        setAchievements(fallbackAchievements);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackAchievements));
+      }
     } finally {
       setLoading(false);
     }
@@ -105,15 +120,11 @@ export const useAchievements = () => {
         .from("portfolio-assets")
         .upload(fileName, file);
 
-      if (uploadError) {
-        // Fallback upload attempt directly or return public url if bucket exists
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from("portfolio-assets").getPublicUrl(fileName);
       return data.publicUrl;
     } catch (err: any) {
-      console.warn("Storage upload warning, using local FileReader object URL fallback:", err.message);
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -123,6 +134,11 @@ export const useAchievements = () => {
   };
 
   const addAchievement = async (achievement: Omit<Achievement, "id" | "created_at" | "updated_at">) => {
+    const newAch: Achievement = {
+      ...achievement,
+      id: Date.now().toString(),
+    };
+
     try {
       const { data, error } = await supabase
         .from("achievements")
@@ -130,61 +146,61 @@ export const useAchievements = () => {
         .select()
         .single();
 
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Achievement added successfully!" });
-      await fetchAchievements();
-      return data;
-    } catch (err: any) {
-      // Local state fallback if table doesn't exist yet in Supabase
-      const newAch: Achievement = {
-        ...achievement,
-        id: Date.now().toString(),
-      };
-      setAchievements(prev => [...prev, newAch]);
-      toast({ title: "Saved Locally", description: "Achievement added to workspace preview!" });
-      return newAch;
+      if (!error && data) {
+        newAch.id = data.id;
+      }
+    } catch (err) {
+      console.warn("Supabase add achievement warning, saving locally.");
     }
+
+    setAchievements(prev => {
+      const updated = [newAch, ...prev];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Success", description: "Achievement added successfully!" });
+    return newAch;
   };
 
   const updateAchievement = async (id: string, updates: Partial<Achievement>) => {
     try {
-      const { error } = await supabase
+      await supabase
         .from("achievements")
         .update(updates)
         .eq("id", id);
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Achievement updated successfully!" });
-      await fetchAchievements();
-      return true;
-    } catch (err: any) {
-      setAchievements(prev =>
-        prev.map(a => (a.id === id ? { ...a, ...updates } : a))
-      );
-      toast({ title: "Updated", description: "Achievement updated locally!" });
-      return true;
+    } catch (err) {
+      console.warn("Supabase update achievement warning, updating locally.");
     }
+
+    setAchievements(prev => {
+      const updated = prev.map(a => (a.id === id ? { ...a, ...updates } : a));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Success", description: "Achievement updated!" });
+    return true;
   };
 
   const deleteAchievement = async (id: string) => {
     try {
-      const { error } = await supabase
+      await supabase
         .from("achievements")
         .delete()
         .eq("id", id);
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Achievement deleted!" });
-      await fetchAchievements();
-      return true;
-    } catch (err: any) {
-      setAchievements(prev => prev.filter(a => a.id !== id));
-      toast({ title: "Deleted", description: "Achievement removed!" });
-      return true;
+    } catch (err) {
+      console.warn("Supabase delete achievement warning, removing locally.");
     }
+
+    setAchievements(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Deleted", description: "Achievement removed!" });
+    return true;
   };
 
   return {

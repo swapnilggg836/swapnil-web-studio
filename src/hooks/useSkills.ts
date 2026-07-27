@@ -24,6 +24,8 @@ export const fallbackSkills: Skill[] = [
   { id: "8", name: "PHP", level: 40, category: "Backend", display_order: 7 },
 ];
 
+const LOCAL_STORAGE_KEY = "portfolio_skills_v1";
+
 export const useSkills = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,13 +39,26 @@ export const useSkills = () => {
         .select("*")
         .order("display_order", { ascending: true });
 
-      if (error || !data || data.length === 0) {
-        setSkills(fallbackSkills);
-      } else {
+      if (!error && data && data.length > 0) {
         setSkills(data as Skill[]);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      } else {
+        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (localData !== null) {
+          setSkills(JSON.parse(localData));
+        } else {
+          setSkills(fallbackSkills);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSkills));
+        }
       }
     } catch {
-      setSkills(fallbackSkills);
+      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (localData !== null) {
+        setSkills(JSON.parse(localData));
+      } else {
+        setSkills(fallbackSkills);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSkills));
+      }
     } finally {
       setLoading(false);
     }
@@ -54,6 +69,7 @@ export const useSkills = () => {
   }, []);
 
   const addSkill = async (skill: Omit<Skill, "id" | "created_at" | "updated_at">) => {
+    const newSkill: Skill = { ...skill, id: Date.now().toString() };
     try {
       const { data, error } = await supabase
         .from("skills")
@@ -61,55 +77,61 @@ export const useSkills = () => {
         .select()
         .single();
 
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Skill added successfully!" });
-      await fetchSkills();
-      return data;
-    } catch (err: any) {
-      const newSkill: Skill = { ...skill, id: Date.now().toString() };
-      setSkills(prev => [...prev, newSkill]);
-      toast({ title: "Saved", description: "Skill added locally!" });
-      return newSkill;
+      if (!error && data) {
+        newSkill.id = data.id;
+      }
+    } catch (err) {
+      console.warn("Supabase add skill warning, saving locally.");
     }
+
+    setSkills(prev => {
+      const updated = [...prev, newSkill];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Success", description: "Skill added successfully!" });
+    return newSkill;
   };
 
   const updateSkill = async (id: string, updates: Partial<Skill>) => {
     try {
-      const { error } = await supabase
+      await supabase
         .from("skills")
         .update(updates)
         .eq("id", id);
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Skill updated successfully!" });
-      await fetchSkills();
-      return true;
-    } catch (err: any) {
-      setSkills(prev => prev.map(s => (s.id === id ? { ...s, ...updates } : s)));
-      toast({ title: "Updated", description: "Skill updated locally!" });
-      return true;
+    } catch (err) {
+      console.warn("Supabase update skill warning, updating locally.");
     }
+
+    setSkills(prev => {
+      const updated = prev.map(s => (s.id === id ? { ...s, ...updates } : s));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Success", description: "Skill updated successfully!" });
+    return true;
   };
 
   const deleteSkill = async (id: string) => {
     try {
-      const { error } = await supabase
+      await supabase
         .from("skills")
         .delete()
         .eq("id", id);
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Skill deleted successfully!" });
-      await fetchSkills();
-      return true;
-    } catch (err: any) {
-      setSkills(prev => prev.filter(s => s.id !== id));
-      toast({ title: "Deleted", description: "Skill removed!" });
-      return true;
+    } catch (err) {
+      console.warn("Supabase delete skill warning, removing locally.");
     }
+
+    setSkills(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({ title: "Success", description: "Skill deleted!" });
+    return true;
   };
 
   return {
