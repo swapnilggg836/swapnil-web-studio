@@ -1114,9 +1114,10 @@ PHP" />
                     </CardContent>
                   </Card>
                 ))}
-              </div>
             )}
           </div>
+        )}
+
         {/* Skills Tab */}
         {activeTab === "skills" && (
           <div>
