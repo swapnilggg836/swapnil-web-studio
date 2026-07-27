@@ -8,6 +8,7 @@ import { useEducation, Education } from "@/hooks/useEducation";
 import { useExperience, Experience } from "@/hooks/useExperience";
 import { useProfileInfo } from "@/hooks/useProfileInfo";
 import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
+import { ImageCropperModal } from "@/components/ImageCropperModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -119,6 +120,8 @@ const AdminDashboard = () => {
   const [profileDescription, setProfileDescription] = useState("");
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
   // Social link form state
   const [editingSocial, setEditingSocial] = useState<SocialLink | null>(null);
@@ -187,11 +190,19 @@ const AdminDashboard = () => {
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProfileImage(file);
       const reader = new FileReader();
-      reader.onload = () => setProfileImagePreview(reader.result as string);
+      reader.onload = () => {
+        setRawImageSrc(reader.result as string);
+        setCropperOpen(true);
+      };
       reader.readAsDataURL(file);
+      e.target.value = "";
     }
+  };
+
+  const handleCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
+    setProfileImage(croppedFile);
+    setProfileImagePreview(croppedPreviewUrl);
   };
 
   const handleProjectSubmit = async (e: React.FormEvent) => {
@@ -458,7 +469,19 @@ const AdminDashboard = () => {
                     <Label>Profile Picture</Label>
                     <Input type="file" accept="image/*" onChange={handleProfileImageChange} />
                     {profileImagePreview && (
-                      <img src={profileImagePreview} alt="Profile" className="mt-2 w-32 h-32 rounded-full object-cover" />
+                      <div className="mt-3 flex items-center gap-4">
+                        <img src={profileImagePreview} alt="Profile" className="w-28 h-28 rounded-full object-cover border-2 border-primary/50 shadow-md" />
+                        {rawImageSrc && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCropperOpen(true)}
+                          >
+                            Adjust Crop / Reposition
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div>
@@ -480,6 +503,12 @@ const AdminDashboard = () => {
                 </form>
               </CardContent>
             </Card>
+            <ImageCropperModal
+              isOpen={cropperOpen}
+              imageSrc={rawImageSrc}
+              onClose={() => setCropperOpen(false)}
+              onCropComplete={handleCropComplete}
+            />
           </div>
         )}
 
