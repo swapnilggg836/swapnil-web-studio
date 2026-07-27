@@ -1,0 +1,4 @@
+GRANT SELECT ON public.profile_info, public.projects, public.education, public.experiences, public.technology_categories, public.resume, public.social_links TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profile_info, public.projects, public.education, public.experiences, public.technology_categories, public.resume, public.social_links TO authenticated;
+GRANT SELECT, INSERT ON public.admin_users TO authenticated;
+GRANT ALL ON public.profile_info, public.projects, public.education, public.experiences, public.technology_categories, public.resume, public.social_links, public.admin_users TO service_role;
