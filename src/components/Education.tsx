@@ -20,7 +20,7 @@ const fallbackEducation: EducationItem[] = [
 
 const EducationCard = ({ edu, index }: { edu: EducationItem; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
     // Small timeout to ensure DOM is ready, then observe
@@ -119,7 +119,7 @@ const EducationCard = ({ edu, index }: { edu: EducationItem; index: number }) =>
 const Education = () => {
   const [educationData, setEducationData] = useState<EducationItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [headerVisible, setHeaderVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
   // Header animation observer

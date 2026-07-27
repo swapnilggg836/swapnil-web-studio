@@ -3,18 +3,18 @@ import { useSkills, Skill } from "@/hooks/useSkills";
 import { Loader2 } from "lucide-react";
 
 const SkillBar = ({ name, level, category, index }: { name: string; level: number; category: string; index: number }) => {
-  const [animated, setAnimated] = useState(false);
+  const [animated, setAnimated] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setAnimated(true), index * 60);
+          setAnimated(true);
           observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -56,7 +56,7 @@ const SkillBar = ({ name, level, category, index }: { name: string; level: numbe
 const Skills = () => {
   const { skills, loading } = useSkills();
   const sectionRef = useRef<HTMLElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

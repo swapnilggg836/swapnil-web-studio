@@ -31,7 +31,7 @@ const Hero = () => {
   const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {

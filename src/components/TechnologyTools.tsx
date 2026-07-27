@@ -77,7 +77,7 @@ const TechnologyTools = () => {
   const [techCategories, setTechCategories] = useState<TechCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>('web');
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {

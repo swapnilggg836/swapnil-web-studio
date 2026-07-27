@@ -43,7 +43,7 @@ const fallbackExperiences: ExperienceItem[] = [
 
 const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -158,7 +158,7 @@ const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) 
 const Experience = () => {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [headerVisible, setHeaderVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

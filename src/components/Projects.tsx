@@ -43,7 +43,7 @@ const ProjectCard = ({
   isFlagship: boolean;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -216,7 +216,7 @@ const Projects = () => {
   const { projects: dbProjects, loading } = useProjects();
   const [projectsList, setProjectsList] = useState<ProjectItem[]>(fallbackProjects);
   const sectionRef = useRef<HTMLElement>(null);
-  const [headerVisible, setHeaderVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

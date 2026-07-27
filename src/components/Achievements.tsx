@@ -38,7 +38,7 @@ export const Achievements = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [activeMedia, setActiveMedia] = useState<{ type: "image" | "video"; url: string; title: string } | null>(null);
 
-  const [headerVisible, setHeaderVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

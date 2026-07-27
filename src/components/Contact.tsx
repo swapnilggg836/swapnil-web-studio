@@ -6,7 +6,7 @@ const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
 
   const [formData, setFormData] = useState({
