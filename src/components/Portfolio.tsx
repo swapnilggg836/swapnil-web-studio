@@ -1,3 +1,4 @@
+import SectionErrorBoundary from "./ErrorBoundary";
 import Navigation from "./Navigation";
 import Hero from "./Hero";
 import Skills from "./Skills";
@@ -12,18 +13,47 @@ import Footer from "./Footer";
 const Portfolio = () => {
   return (
     <div className="min-h-screen" style={{ background: "#000" }}>
-      <Navigation />
+      <SectionErrorBoundary name="Navigation">
+        <Navigation />
+      </SectionErrorBoundary>
+
       <main>
-        <Hero />
-        <Skills />
-        <Projects />
-        <TechnologyTools />
-        <Experience />
-        <Education />
-        <Achievements />
-        <Contact />
+        <SectionErrorBoundary name="Hero">
+          <Hero />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Skills">
+          <Skills />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Projects">
+          <Projects />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="TechnologyTools">
+          <TechnologyTools />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Experience">
+          <Experience />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Education">
+          <Education />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Achievements">
+          <Achievements />
+        </SectionErrorBoundary>
+
+        <SectionErrorBoundary name="Contact">
+          <Contact />
+        </SectionErrorBoundary>
       </main>
-      <Footer />
+
+      <SectionErrorBoundary name="Footer">
+        <Footer />
+      </SectionErrorBoundary>
     </div>
   );
 };
