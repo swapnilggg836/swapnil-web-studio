@@ -8,6 +8,7 @@ import { useEducation, Education } from "@/hooks/useEducation";
 import { useExperience, Experience } from "@/hooks/useExperience";
 import { useProfileInfo } from "@/hooks/useProfileInfo";
 import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
+import { useAchievements, Achievement } from "@/hooks/useAchievements";
 import { ImageCropperModal } from "@/components/ImageCropperModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +67,7 @@ const AdminDashboard = () => {
   const { experiences, loading: expLoading, addExperience, updateExperience, deleteExperience } = useExperience();
   const { profileInfo, loading: profileLoading, uploadProfileImage, saveProfileInfo } = useProfileInfo();
   const { socialLinks, loading: socialLoading, addSocialLink, updateSocialLink, deleteSocialLink } = useSocialLinks();
+  const { achievements, loading: achLoading, addAchievement, updateAchievement, deleteAchievement, uploadAchievementMedia } = useAchievements();
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -134,6 +136,20 @@ const AdminDashboard = () => {
   // Resume state
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
+  // Achievement form state
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
+  const [achDialogOpen, setAchDialogOpen] = useState(false);
+  const [achTitle, setAchTitle] = useState("");
+  const [achCategory, setAchCategory] = useState("Certificate");
+  const [achIssuer, setAchIssuer] = useState("");
+  const [achDate, setAchDate] = useState("");
+  const [achDescription, setAchDescription] = useState("");
+  const [achVideoUrl, setAchVideoUrl] = useState("");
+  const [achLinkUrl, setAchLinkUrl] = useState("");
+  const [achOrder, setAchOrder] = useState(0);
+  const [achMediaFile, setAchMediaFile] = useState<File | null>(null);
+  const [achImagePreview, setAchImagePreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (!authLoading && !isAdmin) {
       navigate("/admin/login");
@@ -174,6 +190,13 @@ const AdminDashboard = () => {
   const resetSocialForm = () => {
     setSocialPlatform(""); setSocialUrl(""); setSocialIcon("Globe");
     setSocialOrder(0); setEditingSocial(null);
+  };
+
+  const resetAchievementForm = () => {
+    setAchTitle(""); setAchCategory("Certificate"); setAchIssuer("");
+    setAchDate(""); setAchDescription(""); setAchVideoUrl("");
+    setAchLinkUrl(""); setAchOrder(0); setAchMediaFile(null);
+    setAchImagePreview(null); setEditingAchievement(null);
   };
 
   // Handle functions
@@ -298,6 +321,47 @@ const AdminDashboard = () => {
     } finally { setFormLoading(false); }
   };
 
+  const handleAchievementSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    try {
+      let imageUrl = editingAchievement?.image_url || null;
+      if (achMediaFile) {
+        imageUrl = await uploadAchievementMedia(achMediaFile);
+      }
+      const data = {
+        title: achTitle,
+        category: achCategory,
+        issuer: achIssuer,
+        date: achDate,
+        description: achDescription,
+        image_url: imageUrl,
+        video_url: achVideoUrl || null,
+        link_url: achLinkUrl || null,
+        display_order: achOrder,
+      };
+      if (editingAchievement) await updateAchievement(editingAchievement.id, data);
+      else await addAchievement(data);
+      resetAchievementForm(); setAchDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally { setFormLoading(false); }
+  };
+
+  const handleEditAchievement = (ach: Achievement) => {
+    setEditingAchievement(ach);
+    setAchTitle(ach.title);
+    setAchCategory(ach.category);
+    setAchIssuer(ach.issuer);
+    setAchDate(ach.date);
+    setAchDescription(ach.description);
+    setAchVideoUrl(ach.video_url || "");
+    setAchLinkUrl(ach.link_url || "");
+    setAchOrder(ach.display_order);
+    setAchImagePreview(ach.image_url || null);
+    setAchDialogOpen(true);
+  };
+
   const handleResumeUpload = async () => {
     if (!resumeFile) return;
     setFormLoading(true);
@@ -364,6 +428,7 @@ const AdminDashboard = () => {
     { id: "technology", label: "Technology", icon: Code },
     { id: "experience", label: "Experience", icon: Briefcase },
     { id: "education", label: "Education", icon: GraduationCap },
+    { id: "achievements", label: "Achievements", icon: Award },
   ];
 
   return (
@@ -453,6 +518,10 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Social Links</CardTitle></CardHeader>
                 <CardContent><p className="text-3xl font-bold text-primary">{socialLinks.length}</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Achievements</CardTitle></CardHeader>
+                <CardContent><p className="text-3xl font-bold text-primary">{achievements.length}</p></CardContent>
               </Card>
             </div>
           </div>
@@ -875,6 +944,133 @@ PHP" />
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Achievements Tab */}
+        {activeTab === "achievements" && (
+          <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold">Achievements & Certificates</h1>
+              <Dialog open={achDialogOpen} onOpenChange={(open) => { setAchDialogOpen(open); if (!open) resetAchievementForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" /> Add Achievement</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingAchievement ? "Edit Achievement" : "Add Achievement"}</DialogTitle>
+                    <DialogDescription>Add certificates, awards, presentations, hackathons, or honors</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAchievementSubmit} className="space-y-4">
+                    <div>
+                      <Label>Title *</Label>
+                      <Input value={achTitle} onChange={(e) => setAchTitle(e.target.value)} placeholder="e.g. AI & ML Certification" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Category *</Label>
+                        <Select value={achCategory} onValueChange={setAchCategory}>
+                          <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Certificate">Certificate</SelectItem>
+                            <SelectItem value="Award">Award</SelectItem>
+                            <SelectItem value="Presentation">Presentation</SelectItem>
+                            <SelectItem value="Hackathon">Hackathon</SelectItem>
+                            <SelectItem value="Event">Event</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Date / Year *</Label>
+                        <Input value={achDate} onChange={(e) => setAchDate(e.target.value)} placeholder="e.g. 2024" required />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Issuer / Organization *</Label>
+                      <Input value={achIssuer} onChange={(e) => setAchIssuer(e.target.value)} placeholder="e.g. Coursera / Stanford / University" required />
+                    </div>
+                    <div>
+                      <Label>Description *</Label>
+                      <Textarea value={achDescription} onChange={(e) => setAchDescription(e.target.value)} rows={3} placeholder="Brief details about the certificate or presentation..." required />
+                    </div>
+                    <div>
+                      <Label>Certificate Image (Optional)</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAchMediaFile(file);
+                            const reader = new FileReader();
+                            reader.onload = () => setAchImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      {achImagePreview && (
+                        <img src={achImagePreview} alt="Preview" className="mt-2 h-24 w-auto rounded border object-cover" />
+                      )}
+                    </div>
+                    <div>
+                      <Label>Video Presentation URL (Optional)</Label>
+                      <Input value={achVideoUrl} onChange={(e) => setAchVideoUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                    </div>
+                    <div>
+                      <Label>Verification / Credential Link (Optional)</Label>
+                      <Input value={achLinkUrl} onChange={(e) => setAchLinkUrl(e.target.value)} placeholder="https://coursera.org/verify/..." />
+                    </div>
+                    <div>
+                      <Label>Display Order</Label>
+                      <Input type="number" value={achOrder} onChange={(e) => setAchOrder(parseInt(e.target.value) || 0)} />
+                    </div>
+                    <Button type="submit" disabled={formLoading} className="w-full">
+                      {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {editingAchievement ? "Update" : "Add"} Achievement
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {achLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : achievements.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-muted-foreground">No achievements yet. Click Add Achievement to add your certificates, awards, and presentations.</CardContent></Card>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {achievements.map((ach) => (
+                  <Card key={ach.id} className="relative flex flex-col justify-between">
+                    <CardContent className="p-4 flex flex-col justify-between h-full">
+                      <div>
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                            {ach.category}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{ach.date}</span>
+                        </div>
+                        <h3 className="font-bold text-lg mb-1">{ach.title}</h3>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">{ach.issuer}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{ach.description}</p>
+                        {ach.image_url && (
+                          <img src={ach.image_url} alt={ach.title} className="h-24 w-full object-cover rounded mb-2 border" />
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2 border-t mt-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEditAchievement(ach)}><Pencil className="w-4 h-4" /></Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Achievement?</AlertDialogTitle></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteAchievement(ach.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </CardContent>
                   </Card>
