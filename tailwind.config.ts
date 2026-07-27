@@ -57,15 +57,20 @@ export default {
 				'hero-end': 'hsl(var(--hero-gradient-end))',
 				'section-bg': 'hsl(var(--section-bg))',
 				'skill-bar': 'hsl(var(--skill-bar))',
-				'glow': 'hsl(var(--glow))'
+				'glow': 'hsl(var(--glow))',
+				'cyan': 'hsl(199, 89%, 48%)',
+				'cyan-dim': 'hsl(199, 89%, 20%)',
 			},
 			backgroundImage: {
 				'hero-gradient': 'linear-gradient(135deg, hsl(var(--hero-gradient-start)), hsl(var(--hero-gradient-end)))',
 				'section-gradient': 'linear-gradient(180deg, hsl(var(--section-bg)), hsl(var(--background)))',
+				'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
 			},
 			boxShadow: {
-				'glow': '0 0 30px hsl(var(--glow) / 0.5)',
-				'glow-sm': '0 0 15px hsl(var(--glow) / 0.3)',
+				'glow': '0 0 30px hsl(var(--glow) / 0.5), 0 8px 40px rgba(0,0,0,0.5)',
+				'glow-sm': '0 0 15px hsl(var(--glow) / 0.3), 0 4px 20px rgba(0,0,0,0.4)',
+				'glow-lg': '0 0 60px hsl(var(--glow) / 0.4), 0 20px 60px rgba(0,0,0,0.6)',
+				'card-dark': '0 8px 32px rgba(0,0,0,0.6)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
