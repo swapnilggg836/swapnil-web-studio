@@ -1,23 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Code, Smartphone, Brain, BarChart3, Wrench, Users, Loader2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
-interface Subcategory {
-  name: string;
-  technologies: string[];
-}
+interface Subcategory { name: string; technologies: string[]; }
+interface TechCategory { id: string; title: string; icon: string; color: string; subcategories: Subcategory[]; }
 
-interface TechCategory {
-  id: string;
-  title: string;
-  icon: string;
-  color: string;
-  subcategories: Subcategory[];
-}
-
-const iconMap: Record<string, typeof Code> = {
-  Code, Smartphone, Brain, BarChart3, Wrench, Users,
-};
+const iconMap: Record<string, typeof Code> = { Code, Smartphone, Brain, BarChart3, Wrench, Users };
 
 const categoryAccents: Record<string, { bg: string; border: string; text: string; glow: string }> = {
   web:    { bg: "hsl(199,89%,48%,0.1)",  border: "hsl(199,89%,48%,0.3)",  text: "hsl(199,89%,65%)",  glow: "hsl(199,89%,48%,0.2)" },
@@ -73,17 +61,93 @@ const fallbackCategories: TechCategory[] = [
   },
 ];
 
+/* Tilt hook for category cards */
+const useTilt = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const onMove = useCallback((e: MouseEvent) => {
+    const el = ref.current; if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(600px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg) translateY(-3px)`;
+  }, []);
+  const onLeave = useCallback(() => {
+    if (ref.current) ref.current.style.transform = "perspective(600px) rotateX(0) rotateY(0) translateY(0)";
+  }, []);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => { el.removeEventListener("mousemove", onMove); el.removeEventListener("mouseleave", onLeave); };
+  }, [onMove, onLeave]);
+  return ref;
+};
+
+const CategoryCard = ({
+  category, isActive, onClick, visible, delay,
+}: {
+  category: TechCategory;
+  isActive: boolean;
+  onClick: () => void;
+  visible: boolean;
+  delay: number;
+}) => {
+  const tiltRef = useTilt();
+  const IconComponent = iconMap[category.icon] || Code;
+  const accent = categoryAccents[category.id] || categoryAccents.web;
+  const subcats = Array.isArray(category.subcategories) ? category.subcategories : [];
+  const techCount = subcats.reduce((acc, s) => acc + (Array.isArray(s.technologies) ? s.technologies.length : 0), 0);
+
+  return (
+    <div
+      ref={tiltRef}
+      onClick={onClick}
+      className="rounded-2xl cursor-pointer shimmer-card"
+      style={{
+        background: isActive ? accent.bg : "rgba(255,255,255,0.03)",
+        border: `1px solid ${isActive ? accent.border : "rgba(255,255,255,0.07)"}`,
+        boxShadow: isActive ? `0 0 35px ${accent.glow}, 0 10px 40px rgba(0,0,0,0.4)` : "none",
+        opacity: visible ? 1 : 0,
+        transition: `opacity 0.55s cubic-bezier(.16,1,.3,1) ${delay}ms, border-color 0.25s ease, box-shadow 0.3s ease, transform 0.15s ease`,
+        willChange: "transform",
+      }}
+    >
+      <div className="p-6 flex flex-col items-center text-center gap-4">
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
+          style={{
+            background: isActive ? accent.bg : "rgba(255,255,255,0.05)",
+            border: `1px solid ${isActive ? accent.border : "rgba(255,255,255,0.09)"}`,
+            transform: isActive ? "scale(1.08)" : "scale(1)",
+          }}
+        >
+          <IconComponent size={26} style={{ color: isActive ? accent.text : "rgba(255,255,255,0.45)" }} />
+        </div>
+        <h3
+          className="font-bold text-base leading-tight"
+          style={{ color: isActive ? accent.text : "rgba(255,255,255,0.75)", fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          {category.title}
+        </h3>
+        <div className="text-xs" style={{ color: isActive ? accent.text : "rgba(255,255,255,0.3)" }}>
+          {techCount} technologies
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TechnologyTools = () => {
   const [techCategories, setTechCategories] = useState<TechCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>('web');
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold: 0.1 }
+      { threshold: 0.08 }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
@@ -105,7 +169,6 @@ const TechnologyTools = () => {
       }
       setLoading(false);
     };
-
     fetchCategories();
   }, []);
 
@@ -116,10 +179,8 @@ const TechnologyTools = () => {
       className="relative py-28 overflow-hidden"
       style={{ background: "#0a0a0a" }}
     >
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.4 }} />
+      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.35 }} />
 
-      {/* Decorative text */}
       <div
         className="decorative-bg-text pointer-events-none select-none"
         style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
@@ -127,7 +188,6 @@ const TechnologyTools = () => {
         STACK
       </div>
 
-      {/* Glow blob */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -135,163 +195,128 @@ const TechnologyTools = () => {
           width: "500px", height: "500px",
           borderRadius: "50%",
           background: "radial-gradient(circle, hsl(199,89%,48%,0.06) 0%, transparent 70%)",
-          filter: "blur(40px)",
+          filter: "blur(50px)",
         }}
       />
 
       <div className="container mx-auto px-6 relative z-10">
-        {/* Header */}
         <div
-          className="text-center mb-16 transition-all duration-700"
+          className="text-center mb-16"
           style={{
             opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0)" : "translateY(24px)",
+            transform: visible ? "translateY(0)" : "translateY(28px)",
+            transition: "all 0.65s cubic-bezier(.16,1,.3,1)",
           }}
         >
-          <div className="section-badge justify-center mx-auto w-fit mb-4">
-            Tech Ecosystem
-          </div>
-          <h2 className="section-title mb-4">Technology & Tools</h2>
+          <div className="section-badge justify-center mx-auto w-fit mb-4">Tech Ecosystem</div>
+          <h2 className="section-title mb-4">Technology &amp; Tools</h2>
           <p className="section-subtitle mx-auto text-center">
             Comprehensive breakdown of my technical stack across domains
           </p>
         </div>
 
-        {/* Loading */}
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
           </div>
         ) : (
           <>
-            {/* Category Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-              {techCategories.map((category, i) => {
-                const IconComponent = iconMap[category.icon] || Code;
-                const isActive = activeCategory === category.id;
-                const accent = categoryAccents[category.id] || categoryAccents.web;
-                const subcats = Array.isArray(category.subcategories) ? category.subcategories : [];
-                const techCount = subcats.reduce((acc, s) => acc + (Array.isArray(s.technologies) ? s.technologies.length : 0), 0);
-
-                return (
-                  <div
-                    key={category.id}
-                    onClick={() => setActiveCategory(isActive ? null : category.id)}
-                    className="glass-card cursor-pointer group"
-                    style={{
-                      opacity: visible ? 1 : 0,
-                      transition: `all 0.5s ease ${i * 60}ms`,
-                      background: isActive ? accent.bg : "rgba(255,255,255,0.03)",
-                      borderColor: isActive ? accent.border : "rgba(255,255,255,0.07)",
-                      boxShadow: isActive ? `0 0 30px ${accent.glow}, 0 8px 32px rgba(0,0,0,0.4)` : undefined,
-                      transform: isActive ? "translateY(-4px) scale(1.02)" : visible ? "translateY(0)" : "translateY(24px)",
-                    }}
-                  >
-                    <div className="p-6 flex flex-col items-center text-center gap-4">
-                      <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
-                        style={{
-                          background: isActive ? accent.bg : "rgba(255,255,255,0.05)",
-                          border: `1px solid ${isActive ? accent.border : "rgba(255,255,255,0.1)"}`,
-                        }}
-                      >
-                        <IconComponent
-                          size={26}
-                          style={{ color: isActive ? accent.text : "rgba(255,255,255,0.5)" }}
-                        />
-                      </div>
-                      <h3
-                        className="font-bold text-base leading-tight"
-                        style={{ color: isActive ? accent.text : "rgba(255,255,255,0.8)" }}
-                      >
-                        {category.title}
-                      </h3>
-                      <div
-                        className="text-xs transition-all duration-300"
-                        style={{ color: isActive ? accent.text : "rgba(255,255,255,0.3)" }}
-                      >
-                        {techCount} technologies
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Category cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              {techCategories.map((category, i) => (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  isActive={activeCategory === category.id}
+                  onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
+                  visible={visible}
+                  delay={i * 55}
+                />
+              ))}
             </div>
 
-            {/* Active category detail panel */}
-            {activeCategory && (
-              <div
-                className="glass-card animate-fade-up"
-                style={{ padding: "2rem" }}
-              >
-                {techCategories
-                  .filter(cat => cat.id === activeCategory)
-                  .map(category => {
-                    const accent = categoryAccents[category.id] || categoryAccents.web;
-                    const subcats = Array.isArray(category.subcategories) ? category.subcategories : [];
-
-                    return (
-                      <div key={category.id}>
-                        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-                          <div>
-                            <h3 className="text-2xl font-black text-white mb-1">{category.title}</h3>
-                            <div
-                              className="w-16 h-1 rounded-full"
-                              style={{ background: accent.text }}
-                            />
-                          </div>
-                          <button
-                            onClick={() => setActiveCategory(null)}
-                            className="btn-pill btn-pill-outline text-sm"
-                            style={{ padding: "0.4rem 1rem" }}
+            {/* Detail panel */}
+            <div
+              style={{
+                maxHeight: activeCategory ? "800px" : "0px",
+                overflow: "hidden",
+                transition: "max-height 0.5s cubic-bezier(.16,1,.3,1)",
+              }}
+            >
+              {activeCategory && techCategories
+                .filter(cat => cat.id === activeCategory)
+                .map(category => {
+                  const accent = categoryAccents[category.id] || categoryAccents.web;
+                  const subcats = Array.isArray(category.subcategories) ? category.subcategories : [];
+                  return (
+                    <div
+                      key={category.id}
+                      className="rounded-2xl p-6 md:p-8 mt-2"
+                      style={{
+                        background: "rgba(255,255,255,0.025)",
+                        border: `1px solid ${accent.border}`,
+                        boxShadow: `0 0 30px ${accent.glow}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+                        <div>
+                          <h3
+                            className="text-2xl font-black text-white mb-1"
+                            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                           >
-                            Close ✕
-                          </button>
+                            {category.title}
+                          </h3>
+                          <div className="w-12 h-0.5 rounded-full" style={{ background: accent.text }} />
                         </div>
-
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                          {subcats.map((subcategory, index) => {
-                            const techList = Array.isArray(subcategory.technologies) ? subcategory.technologies : [];
-                            return (
-                              <div
-                                key={index}
-                                className="rounded-xl p-5"
-                                style={{
-                                  background: "rgba(255,255,255,0.03)",
-                                  border: "1px solid rgba(255,255,255,0.06)",
-                                }}
-                              >
-                                <h4 className="font-semibold text-white/80 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
-                                  <span
-                                    className="w-2 h-2 rounded-full inline-block flex-shrink-0"
-                                    style={{ background: accent.text }}
-                                  />
-                                  {subcategory.name}
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {techList.map((tech) => (
-                                    <span
-                                      key={tech}
-                                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-                                      style={{
-                                        background: "rgba(255,255,255,0.04)",
-                                        border: "1px solid rgba(255,255,255,0.08)",
-                                        color: "rgba(255,255,255,0.75)",
-                                      }}
-                                    >
-                                      {tech}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <button
+                          onClick={() => setActiveCategory(null)}
+                          className="btn-pill btn-pill-outline text-sm"
+                          style={{ padding: "0.4rem 1rem" }}
+                        >
+                          Close ✕
+                        </button>
                       </div>
-                    );
-                  })}
-              </div>
-            )}
+
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {subcats.map((subcategory, index) => {
+                          const techList = Array.isArray(subcategory.technologies) ? subcategory.technologies : [];
+                          return (
+                            <div
+                              key={index}
+                              className="rounded-xl p-5"
+                              style={{
+                                background: "rgba(255,255,255,0.03)",
+                                border: `1px solid rgba(255,255,255,0.06)`,
+                              }}
+                            >
+                              <h4 className="font-semibold text-white/75 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: accent.text }} />
+                                {subcategory.name}
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {techList.map(tech => (
+                                  <span
+                                    key={tech}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 cursor-default"
+                                    style={{
+                                      background: accent.bg,
+                                      border: `1px solid ${accent.border}`,
+                                      color: accent.text,
+                                    }}
+                                  >
+                                    {tech}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
+              }
+            </div>
           </>
         )}
       </div>

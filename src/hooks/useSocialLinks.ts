@@ -14,7 +14,7 @@ export interface SocialLink {
 
 export const fallbackSocialLinks: SocialLink[] = [
   { id: "1", platform: "GitHub", url: "https://github.com/swapnilggg836", icon: "Github", display_order: 0 },
-  { id: "2", platform: "LinkedIn", url: "https://linkedin.com/in/swapnil-gaikwad", icon: "Linkedin", display_order: 1 },
+  { id: "2", platform: "LinkedIn", url: "https://www.linkedin.com/in/swapnil-gaikwad-3136a4275/", icon: "Linkedin", display_order: 1 },
   { id: "3", platform: "Gmail", url: "mailto:swapnilg836@gmail.com", icon: "Mail", display_order: 2 },
   { id: "4", platform: "WhatsApp", url: "https://wa.me/918605887561", icon: "MessageCircle", display_order: 3 },
   { id: "5", platform: "Outlook", url: "mailto:swapnilg836@outlook.com", icon: "Mail", display_order: 4 },

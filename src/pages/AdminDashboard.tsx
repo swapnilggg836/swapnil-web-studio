@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2, Sliders, Award, Lock } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogOut, Home, LayoutDashboard, FileText, Code, GraduationCap, Briefcase, User, Upload, Link, Share2, Sliders, Award, Lock, Video, Image as ImageIcon, Film, X, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -61,7 +61,7 @@ const ICON_OPTIONS = [
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading, signOut, updateUserPassword } = useAuth();
-  const { projects, loading: projectsLoading, addProject, updateProject, deleteProject, uploadImage } = useProjects();
+  const { projects, loading: projectsLoading, addProject, updateProject, deleteProject, uploadImage, uploadMedia } = useProjects();
   const { resume, loading: resumeLoading, uploadResume, saveResume, deleteResume } = useResume();
   const { categories, loading: techLoading, addCategory, updateCategory, deleteCategory } = useTechnology();
   const { education, loading: eduLoading, addEducation, updateEducation, deleteEducation } = useEducation();
@@ -88,6 +88,14 @@ const AdminDashboard = () => {
   const [projectOrder, setProjectOrder] = useState(0);
   const [projectImage, setProjectImage] = useState<File | null>(null);
   const [projectImagePreview, setProjectImagePreview] = useState<string | null>(null);
+
+  // Media states for multiple images & video
+  const [projectImagesList, setProjectImagesList] = useState<string[]>([]);
+  const [projectNewImageFiles, setProjectNewImageFiles] = useState<File[]>([]);
+  const [projectNewImageUrl, setProjectNewImageUrl] = useState("");
+  const [projectVideoUrl, setProjectVideoUrl] = useState<string>("");
+  const [projectNewVideoFile, setProjectNewVideoFile] = useState<File | null>(null);
+  const [projectVideoPreview, setProjectVideoPreview] = useState<string | null>(null);
 
   // Education form state
   const [editingEducation, setEditingEducation] = useState<Education | null>(null);
@@ -189,7 +197,10 @@ const AdminDashboard = () => {
   const resetProjectForm = () => {
     setProjectTitle(""); setProjectDescription(""); setProjectTechStack("");
     setProjectGithub(""); setProjectLive(""); setProjectOrder(0);
-    setProjectImage(null); setProjectImagePreview(null); setEditingProject(null);
+    setProjectImage(null); setProjectImagePreview(null);
+    setProjectImagesList([]); setProjectNewImageFiles([]); setProjectNewImageUrl("");
+    setProjectVideoUrl(""); setProjectNewVideoFile(null); setProjectVideoPreview(null);
+    setEditingProject(null);
   };
 
   const resetEducationForm = () => {
@@ -235,6 +246,52 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleProjectMultipleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setProjectNewImageFiles(prev => [...prev, ...files]);
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          setProjectImagesList(prev => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const handleAddImageUrl = () => {
+    if (!projectNewImageUrl.trim()) return;
+    setProjectImagesList(prev => [...prev, projectNewImageUrl.trim()]);
+    setProjectNewImageUrl("");
+  };
+
+  const handleRemoveProjectImage = (indexToRemove: number) => {
+    setProjectImagesList(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleProjectVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProjectNewVideoFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProjectVideoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveProjectVideo = () => {
+    setProjectVideoUrl("");
+    setProjectNewVideoFile(null);
+    setProjectVideoPreview(null);
+  };
+
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -257,8 +314,33 @@ const AdminDashboard = () => {
     e.preventDefault();
     setFormLoading(true);
     try {
-      let imageUrl = editingProject?.image_url || null;
-      if (projectImage) imageUrl = await uploadImage(projectImage);
+      // Upload new image files
+      const uploadedImageUrls: string[] = [];
+      for (const file of projectNewImageFiles) {
+        const url = await uploadMedia(file);
+        if (url) uploadedImageUrls.push(url);
+      }
+
+      // Combine existing non-data-URL images with newly uploaded ones
+      const existingUrls = projectImagesList.filter(img => !img.startsWith("data:"));
+      const finalImages = [...existingUrls, ...uploadedImageUrls];
+
+      let imageUrl = finalImages[0] || editingProject?.image_url || null;
+      if (projectImage) {
+        const uploadedSingle = await uploadMedia(projectImage);
+        if (uploadedSingle) {
+          imageUrl = uploadedSingle;
+          if (!finalImages.includes(uploadedSingle)) finalImages.unshift(uploadedSingle);
+        }
+      }
+
+      // Upload video file if selected
+      let finalVideoUrl = projectVideoUrl.trim() || null;
+      if (projectNewVideoFile) {
+        const uploadedVid = await uploadMedia(projectNewVideoFile);
+        if (uploadedVid) finalVideoUrl = uploadedVid;
+      }
+
       const projectData = {
         title: projectTitle,
         description: projectDescription.split("\n").filter(line => line.trim()),
@@ -267,9 +349,13 @@ const AdminDashboard = () => {
         live_link: projectLive || null,
         display_order: projectOrder,
         image_url: imageUrl,
+        images: finalImages.length > 0 ? finalImages : (imageUrl ? [imageUrl] : []),
+        video_url: finalVideoUrl,
       };
+
       if (editingProject) await updateProject(editingProject.id, projectData);
       else await addProject(projectData);
+
       resetProjectForm(); setProjectDialogOpen(false);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -441,10 +527,29 @@ const AdminDashboard = () => {
   };
 
   const handleEditProject = (project: Project) => {
-    setEditingProject(project); setProjectTitle(project.title);
-    setProjectDescription(project.description.join("\n")); setProjectTechStack(project.tech_stack);
-    setProjectGithub(project.github_link || ""); setProjectLive(project.live_link || "");
-    setProjectOrder(project.display_order); setProjectImagePreview(project.image_url);
+    setEditingProject(project);
+    setProjectTitle(project.title);
+    setProjectDescription(Array.isArray(project.description) ? project.description.join("\n") : (project.description || ""));
+    setProjectTechStack(project.tech_stack || "");
+    setProjectGithub(project.github_link || "");
+    setProjectLive(project.live_link || "");
+    setProjectOrder(project.display_order || 0);
+
+    const imgs: string[] = [];
+    if (Array.isArray(project.images) && project.images.length > 0) {
+      imgs.push(...project.images.filter(Boolean));
+    } else if (project.image_url) {
+      imgs.push(project.image_url);
+    }
+    setProjectImagesList(imgs);
+    setProjectImagePreview(imgs[0] || null);
+    setProjectNewImageFiles([]);
+    setProjectNewImageUrl("");
+
+    setProjectVideoUrl(project.video_url || "");
+    setProjectVideoPreview(project.video_url || null);
+    setProjectNewVideoFile(null);
+
     setProjectDialogOpen(true);
   };
 
@@ -834,11 +939,93 @@ const AdminDashboard = () => {
                     <div><Label>Title *</Label><Input value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} required /></div>
                     <div><Label>Description (one per line) *</Label><Textarea value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} rows={4} required /></div>
                     <div><Label>Tech Stack *</Label><Input value={projectTechStack} onChange={(e) => setProjectTechStack(e.target.value)} required /></div>
-                    <div><Label>Image</Label><Input type="file" accept="image/*" onChange={handleProjectImageChange} />
-                      {projectImagePreview && <img src={projectImagePreview} alt="Preview" className="mt-2 w-full max-w-xs rounded-lg" />}
+                    
+                    {/* Multiple Images Section */}
+                    <div className="space-y-2 border p-3 rounded-lg bg-card/50">
+                      <Label className="flex items-center gap-1.5 font-medium"><ImageIcon className="w-4 h-4 text-primary" /> Project Images (Upload Multiple)</Label>
+                      <Input type="file" accept="image/*" multiple onChange={handleProjectMultipleImagesChange} className="text-xs" />
+                      <div className="flex gap-2">
+                        <Input
+                          value={projectNewImageUrl}
+                          onChange={(e) => setProjectNewImageUrl(e.target.value)}
+                          placeholder="Or paste image URL (https://...)"
+                          className="text-xs"
+                        />
+                        <Button type="button" variant="outline" size="sm" onClick={handleAddImageUrl} className="text-xs shrink-0">
+                          Add URL
+                        </Button>
+                      </div>
+
+                      {projectImagesList.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Preview ({projectImagesList.length} image{projectImagesList.length > 1 ? "s" : ""})</Label>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {projectImagesList.map((imgSrc, idx) => (
+                              <div key={idx} className="relative group rounded-md overflow-hidden border border-border aspect-video bg-black">
+                                <img src={imgSrc} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveProjectImage(idx)}
+                                  className="absolute top-1 right-1 bg-red-600/90 text-white rounded-full p-1 opacity-90 hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                                {idx === 0 && (
+                                  <span className="absolute bottom-1 left-1 bg-primary/90 text-white text-[10px] px-1.5 py-0.5 rounded font-semibold">Cover</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div><Label>GitHub Link</Label><Input value={projectGithub} onChange={(e) => setProjectGithub(e.target.value)} /></div>
-                    <div><Label>Live Demo Link</Label><Input value={projectLive} onChange={(e) => setProjectLive(e.target.value)} /></div>
+
+                    {/* Video Demo Section */}
+                    <div className="space-y-2 border p-3 rounded-lg bg-card/50">
+                      <Label className="flex items-center gap-1.5 font-medium"><Video className="w-4 h-4 text-primary" /> Project Video Demo (Upload or Link)</Label>
+                      <Input type="file" accept="video/*" onChange={handleProjectVideoFileChange} className="text-xs" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground shrink-0">Video URL:</span>
+                        <Input
+                          value={projectVideoUrl}
+                          onChange={(e) => {
+                            setProjectVideoUrl(e.target.value);
+                            if (e.target.value.trim()) setProjectVideoPreview(e.target.value.trim());
+                            else setProjectVideoPreview(null);
+                          }}
+                          placeholder="https://youtube.com/watch?v=... or direct .mp4 link"
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {projectVideoPreview && (
+                        <div className="mt-2 relative rounded-lg overflow-hidden border border-border bg-black p-2">
+                          <Label className="text-xs text-muted-foreground mb-1 block">Video Preview:</Label>
+                          {projectVideoPreview.includes("youtube.com") || projectVideoPreview.includes("youtu.be") ? (
+                            <iframe
+                              src={projectVideoPreview.replace("watch?v=", "embed/")}
+                              className="w-full h-44 rounded-lg"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video src={projectVideoPreview} controls className="w-full max-h-48 rounded-lg" />
+                          )}
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleRemoveProjectVideo}
+                            className="mt-2 text-xs h-7"
+                          >
+                            <X className="w-3 h-3 mr-1" /> Remove Video
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div><Label>GitHub Link</Label><Input value={projectGithub} onChange={(e) => setProjectGithub(e.target.value)} placeholder="https://github.com/..." /></div>
+                    <div><Label>Live Demo / Host Link</Label><Input value={projectLive} onChange={(e) => setProjectLive(e.target.value)} placeholder="https://yourdomain.com" /></div>
                     <div><Label>Display Order</Label><Input type="number" value={projectOrder} onChange={(e) => setProjectOrder(parseInt(e.target.value) || 0)} /></div>
                     <Button type="submit" disabled={formLoading} className="w-full">
                       {formLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -854,25 +1041,49 @@ const AdminDashboard = () => {
               <Card><CardContent className="py-8 text-center text-muted-foreground">No projects yet</CardContent></Card>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.map((project) => (
-                  <Card key={project.id}>
-                    {project.image_url && <img src={project.image_url} alt={project.title} className="w-full h-40 object-cover rounded-t-lg" />}
-                    <CardContent className="p-4">
-                      <h3 className="font-bold mb-1">{project.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-4">{project.tech_stack}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEditProject(project)}><Pencil className="w-4 h-4" /></Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Delete Project?</AlertDialogTitle></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteProject(project.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                {projects.map((project) => {
+                  const coverImg = (Array.isArray(project.images) && project.images[0]) || project.image_url;
+                  const imgCount = Array.isArray(project.images) ? project.images.length : (project.image_url ? 1 : 0);
+                  const hasVideo = Boolean(project.video_url);
+
+                  return (
+                    <Card key={project.id} className="overflow-hidden">
+                      <div className="relative h-40 bg-black">
+                        {coverImg ? (
+                          <img src={coverImg} alt={project.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No image</div>
+                        )}
+                        <div className="absolute top-2 right-2 flex gap-1 z-10">
+                          {hasVideo && (
+                            <span className="bg-red-600/90 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                              <Video className="w-3 h-3" /> Video
+                            </span>
+                          )}
+                          {imgCount > 1 && (
+                            <span className="bg-black/80 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                              <ImageIcon className="w-3 h-3" /> {imgCount}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      <CardContent className="p-4">
+                        <h3 className="font-bold mb-1">{project.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{project.tech_stack}</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditProject(project)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete Project?</AlertDialogTitle></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteProject(project.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

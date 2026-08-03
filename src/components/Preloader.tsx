@@ -1,104 +1,79 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
-const Preloader = ({ onComplete }: { onComplete: () => void }) => {
-  const [hiding, setHiding] = useState(false);
+const Preloader = () => {
+  const [phase, setPhase] = useState<"terminal" | "name" | "done">("terminal");
+  const [termText, setTermText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+  const termString = "> Loading swapnil...";
 
+  // Cursor blink
   useEffect(() => {
-    const t1 = setTimeout(() => {
-      setHiding(true);
-    }, 1200);
-
-    const t2 = setTimeout(() => {
-      onComplete();
-    }, 1700);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    const interval = setInterval(() => setShowCursor(c => !c), 500);
+    return () => clearInterval(interval);
   }, []);
+
+  // Type the terminal string
+  useEffect(() => {
+    if (phase !== "terminal") return;
+    if (termText.length < termString.length) {
+      const t = setTimeout(() => setTermText(termString.slice(0, termText.length + 1)), 55);
+      return () => clearTimeout(t);
+    } else {
+      // After typing is done, switch to name reveal
+      const t = setTimeout(() => setPhase("name"), 400);
+      return () => clearTimeout(t);
+    }
+  }, [termText, phase, termString]);
+
+  // After name reveal, dismiss
+  useEffect(() => {
+    if (phase !== "name") return;
+    const t = setTimeout(() => setPhase("done"), 2000);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  if (phase === "done") return null;
 
   return (
     <div
+      className="preloader flex-col gap-6"
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "#000",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "transform 0.5s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.5s ease",
-        transform: hiding ? "translateY(-100%)" : "translateY(0)",
-        opacity: hiding ? 0 : 1,
-        pointerEvents: hiding ? "none" : "auto",
+        opacity: phase === "name" ? 1 : 1,
+        animation: phase === "name" ? "preloaderSlideUp 0.6s ease 1.5s forwards" : "none",
       }}
     >
-      {/* Grid background */}
+      {/* Terminal line */}
       <div
+        className="font-mono text-sm md:text-base"
         style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-          backgroundSize: "50px 50px",
+          color: "hsl(199,89%,48%)",
+          opacity: phase === "terminal" ? 1 : 0,
+          transition: "opacity 0.3s ease",
+          height: "1.5rem",
         }}
-      />
-
-      {/* Glow blob */}
-      <div
-        style={{
-          position: "absolute",
-          width: "500px",
-          height: "500px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, hsl(199,89%,48%,0.15) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      <div style={{ position: "relative", textAlign: "center" }}>
-        {/* Brand name */}
-        <div
-          style={{
-            fontSize: "clamp(3rem, 10vw, 7rem)",
-            fontWeight: 900,
-            letterSpacing: "-0.04em",
-            color: "rgba(255,255,255,0.1)",
-            fontFamily: "'Inter', sans-serif",
-            textTransform: "uppercase",
-            lineHeight: 1,
-            position: "relative",
-          }}
-        >
-          Swapnil
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              color: "hsl(199, 89%, 48%)",
-              clipPath: "inset(0 100% 0 0)",
-              animation: "preloaderWipe 1.2s cubic-bezier(0.77, 0, 0.175, 1) 0.1s forwards",
-              fontWeight: 900,
-            }}
-          >
-            Swapnil
-          </div>
-        </div>
-
-        {/* Subtitle */}
-        <div
-          style={{
-            marginTop: "1rem",
-            color: "rgba(255,255,255,0.4)",
-            fontSize: "0.8rem",
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
-          }}
-        >
-          Web Developer & AI Engineer
-        </div>
+      >
+        {termText}
+        <span style={{ opacity: showCursor ? 1 : 0 }}>█</span>
       </div>
+
+      {/* Name reveal */}
+      {phase === "name" && (
+        <div className="text-center">
+          <div className="preloader-text">
+            swapnil
+            <span className="preloader-text-fill">swapnil</span>
+          </div>
+          <div className="preloader-progress mt-4 mx-auto">
+            <div className="preloader-progress-fill" />
+          </div>
+          <p
+            className="mt-3 text-xs tracking-widest uppercase"
+            style={{ color: "rgba(255,255,255,0.2)", letterSpacing: "0.2em" }}
+          >
+            portfolio
+          </p>
+        </div>
+      )}
     </div>
   );
 };

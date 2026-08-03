@@ -43,7 +43,8 @@ const fallbackExperiences: ExperienceItem[] = [
 
 const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [show, setShow] = useState(true);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,83 +71,93 @@ const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) 
 
   return (
     <div ref={ref} className="relative flex gap-6 md:gap-8">
-      {/* Timeline dot + line */}
+      {/* Timeline column */}
       <div className="flex flex-col items-center flex-shrink-0">
+        {/* Dot with ripple rings */}
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 z-10"
+          className="timeline-dot-outer w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 z-10"
           style={{
-            background: "linear-gradient(135deg, hsl(199,89%,20%), hsl(199,89%,48%))",
-            border: "2px solid hsl(199,89%,60%)",
-            boxShadow: "0 0 20px hsl(199,89%,48%,0.4)",
+            background: "linear-gradient(135deg, hsl(199,89%,18%), hsl(199,89%,44%))",
+            border: "2px solid hsl(199,89%,55%)",
+            boxShadow: "0 0 22px hsl(199,89%,48%,0.5)",
           }}
         >
-          <Briefcase size={20} style={{ color: "#fff" }} />
+          <Briefcase size={19} style={{ color: "#fff" }} />
         </div>
-        {/* Connecting line */}
+
+        {/* Animated connector line */}
         <div
-          className="flex-1 w-px mt-2"
-          style={{ background: "linear-gradient(to bottom, hsl(199,89%,48%,0.4), transparent)", minHeight: "3rem" }}
+          ref={lineRef}
+          className="flex-1 w-px mt-2 origin-top"
+          style={{
+            background: "linear-gradient(to bottom, hsl(199,89%,48%,0.5), transparent)",
+            minHeight: "3rem",
+            transform: show ? "scaleY(1)" : "scaleY(0)",
+            transition: "transform 0.8s cubic-bezier(.16,1,.3,1) 0.3s",
+          }}
         />
       </div>
 
       {/* Card */}
       <div
-        className="flex-1 mb-10 rounded-2xl p-6 md:p-8 transition-all duration-700 glass-card"
+        className="flex-1 mb-10 rounded-2xl p-6 md:p-8 shimmer-card"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
           opacity: show ? 1 : 0,
-          transform: show ? "translateX(0)" : "translateX(24px)",
-          transitionDelay: `${index * 120}ms`,
+          transform: show ? "translateX(0)" : "translateX(28px)",
+          transition: `all 0.65s cubic-bezier(.16,1,.3,1) ${index * 120}ms`,
+          borderLeft: "2px solid hsl(199,89%,48%,0.3)",
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLElement).style.borderColor = "hsl(199,89%,48%,0.4)";
-          (e.currentTarget as HTMLElement).style.boxShadow = "0 0 35px hsl(199,89%,48%,0.15)";
+          (e.currentTarget as HTMLElement).style.borderColor = "hsl(199,89%,48%,0.35)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 40px rgba(0,0,0,0.4), 0 0 25px hsl(199,89%,48%,0.1)";
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)";
+          (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
           (e.currentTarget as HTMLElement).style.boxShadow = "none";
         }}
       >
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          {/* Period badge */}
           <div
             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
             style={{
-              background: "hsl(199,89%,48%,0.15)",
-              border: "1px solid hsl(199,89%,48%,0.35)",
-              color: "hsl(199,89%,70%)",
+              background: "hsl(199,89%,48%,0.12)",
+              border: "1px solid hsl(199,89%,48%,0.3)",
+              color: "hsl(199,89%,65%)",
             }}
           >
-            <Calendar size={12} />
+            <Calendar size={11} />
             {exp.period}
           </div>
 
           <div className="flex items-center gap-1.5 text-white/40 text-xs font-medium">
-            <MapPin size={12} />
+            <MapPin size={11} />
             {exp.location}
           </div>
         </div>
 
-        <h3 className="font-black text-white text-xl md:text-2xl leading-tight mb-1">
+        <h3
+          className="font-black text-white text-xl md:text-2xl leading-tight mb-1"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
           {exp.title}
         </h3>
 
-        <div className="flex items-center gap-2 mb-5" style={{ color: "hsl(199,89%,60%)" }}>
-          <Building2 size={15} />
+        <div className="flex items-center gap-2 mb-5" style={{ color: "hsl(199,89%,58%)" }}>
+          <Building2 size={14} />
           <span className="font-bold text-sm">{exp.company}</span>
         </div>
 
-        {/* Bullet points */}
         <div className="space-y-2.5">
           {descList.map((item, i) => (
             <div key={i} className="flex items-start gap-3">
               <CheckCircle2
-                size={16}
+                size={15}
                 className="mt-0.5 flex-shrink-0"
                 style={{ color: "hsl(199,89%,48%)" }}
               />
-              <span className="text-white/65 text-sm leading-relaxed">{item}</span>
+              <span className="text-white/60 text-sm leading-relaxed">{item}</span>
             </div>
           ))}
         </div>
@@ -158,7 +169,7 @@ const ExperienceCard = ({ exp, index }: { exp: ExperienceItem; index: number }) 
 const Experience = () => {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [headerVisible, setHeaderVisible] = useState(true);
+  const [headerVisible, setHeaderVisible] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -184,7 +195,6 @@ const Experience = () => {
       }
       setLoading(false);
     };
-
     fetchExperiences();
   }, []);
 
@@ -194,10 +204,8 @@ const Experience = () => {
       className="relative py-28 overflow-hidden"
       style={{ background: "#0a0a0a" }}
     >
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.35 }} />
+      <div className="absolute inset-0 bg-grid pointer-events-none" style={{ opacity: 0.3 }} />
 
-      {/* Decorative text */}
       <div
         className="decorative-bg-text pointer-events-none select-none"
         style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
@@ -205,7 +213,6 @@ const Experience = () => {
         CAREER
       </div>
 
-      {/* Glow blob */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -213,36 +220,30 @@ const Experience = () => {
           width: "500px", height: "500px",
           borderRadius: "50%",
           background: "radial-gradient(circle, hsl(199,89%,48%,0.06) 0%, transparent 70%)",
-          filter: "blur(40px)",
+          filter: "blur(50px)",
         }}
       />
 
       <div className="container mx-auto px-6 relative z-10">
-        {/* Header */}
         <div
           ref={headerRef}
-          className="text-center mb-20 transition-all duration-700"
+          className="text-center mb-20"
           style={{
             opacity: headerVisible ? 1 : 0,
-            transform: headerVisible ? "translateY(0)" : "translateY(24px)",
+            transform: headerVisible ? "translateY(0)" : "translateY(28px)",
+            transition: "all 0.65s cubic-bezier(.16,1,.3,1)",
           }}
         >
-          <div className="section-badge justify-center mx-auto w-fit mb-4">
-            Professional Track
-          </div>
+          <div className="section-badge justify-center mx-auto w-fit mb-4">Professional Track</div>
           <h2 className="section-title mb-4">Work Experience</h2>
           <p className="section-subtitle mx-auto text-center">
             My professional journey, internships, and key engineering roles
           </p>
         </div>
 
-        {/* Loading */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2
-              className="w-8 h-8 animate-spin"
-              style={{ color: "hsl(199,89%,48%)" }}
-            />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
           </div>
         ) : (
           <div className="max-w-3xl mx-auto">
