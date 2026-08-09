@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { useSkills } from "@/hooks/useSkills";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSkills, Skill } from "@/hooks/useSkills";
 import { Loader2 } from "lucide-react";
+import { categoryLabel, categoryRank } from "@/lib/skillCategories";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /* Animated counter hook */
 const useCounter = (target: number, duration: number, start: boolean) => {
@@ -11,7 +13,7 @@ const useCounter = (target: number, duration: number, start: boolean) => {
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.round(eased * target));
       if (progress < 1) requestAnimationFrame(animate);
     };
@@ -20,81 +22,72 @@ const useCounter = (target: number, duration: number, start: boolean) => {
   return count;
 };
 
-const SkillBar = ({
-  name,
-  level,
+/* Compact skill badge with proficiency tooltip */
+const SkillBadge = ({ skill }: { skill: Skill }) => (
+  <Tooltip delayDuration={120}>
+    <TooltipTrigger asChild>
+      <span
+        className="px-3 py-1.5 rounded-full text-sm font-medium cursor-default transition-all duration-300 hover:-translate-y-0.5"
+        style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          background: "hsl(199,89%,48%,0.07)",
+          border: "1px solid hsl(199,89%,48%,0.22)",
+          color: "rgba(255,255,255,0.85)",
+        }}
+      >
+        {skill.name}
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>Proficiency: {skill.level}%</TooltipContent>
+  </Tooltip>
+);
+
+/* One card per category */
+const CategoryCard = ({
   category,
+  items,
   index,
+  visible,
 }: {
-  name: string;
-  level: number;
   category: string;
+  items: Skill[];
   index: number;
-}) => {
-  const [animated, setAnimated] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const count = useCounter(level, 1200, animated);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setAnimated(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} className="space-y-3 group">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-            style={{
-              background: "hsl(199,89%,48%,0.1)",
-              color: "hsl(199,89%,60%)",
-              border: "1px solid hsl(199,89%,48%,0.2)",
-            }}
-          >
-            {category}
-          </span>
-          <span
-            className="font-semibold text-white text-base group-hover:text-gradient-cyan transition-all"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            {name}
-          </span>
-        </div>
-        <span
-          className="font-bold text-sm tabular-nums"
-          style={{
-            color: "hsl(199,89%,60%)",
-            fontFamily: "'Space Grotesk', sans-serif",
-            minWidth: "3ch",
-            textAlign: "right",
-          }}
-        >
-          {count}%
-        </span>
-      </div>
-
-      <div className="skill-bar-track">
-        <div
-          className="skill-bar-fill"
-          style={{
-            width: animated ? `${level}%` : "0%",
-            transition: `width 1.3s cubic-bezier(0.25, 1, 0.5, 1) ${index * 55}ms`,
-          }}
-        />
-      </div>
+  visible: boolean;
+}) => (
+  <div
+    className="glass-card p-6 md:p-7"
+    style={{
+      borderColor: "rgba(255,255,255,0.07)",
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(28px)",
+      transition: `all 0.6s cubic-bezier(.16,1,.3,1) ${0.08 + index * 0.07}s`,
+    }}
+  >
+    <div className="flex items-center justify-between gap-3 mb-5">
+      <h3
+        className="font-bold text-lg text-white"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+      >
+        {categoryLabel(category)}
+      </h3>
+      <span
+        className="px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0"
+        style={{
+          background: "hsl(199,89%,48%,0.1)",
+          color: "hsl(199,89%,60%)",
+          border: "1px solid hsl(199,89%,48%,0.2)",
+        }}
+      >
+        {items.length}
+      </span>
     </div>
-  );
-};
+    <div className="flex flex-wrap gap-2">
+      {items.map((s) => (
+        <SkillBadge key={s.id || `${category}-${s.name}`} skill={s} />
+      ))}
+    </div>
+  </div>
+);
 
 /* Stat counter card */
 const StatCard = ({
@@ -146,10 +139,33 @@ const Skills = () => {
     return () => observer.disconnect();
   }, []);
 
+  /* Group individual skill records by category, sorted by display order */
+  const groups = useMemo(() => {
+    const map = new Map<string, Skill[]>();
+    skills.forEach((s) => {
+      const key = s.category || "Other";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    });
+    return Array.from(map.entries())
+      .map(([category, items]) => ({
+        category,
+        items: [...items].sort(
+          (a, b) =>
+            (a.display_order ?? 0) - (b.display_order ?? 0) || a.name.localeCompare(b.name)
+        ),
+      }))
+      .sort(
+        (a, b) =>
+          categoryRank(a.category) - categoryRank(b.category) ||
+          a.category.localeCompare(b.category)
+      );
+  }, [skills]);
+
   const stats = [
     { value: `${skills.length > 0 ? skills.length : 16}+`, label: "Skills Mastered" },
+    { value: `${groups.length > 0 ? groups.length : 8}`, label: "Skill Areas" },
     { value: "8+", label: "Projects Built" },
-    { value: "3+", label: "Years Learning" },
   ];
 
   return (
@@ -202,42 +218,34 @@ const Skills = () => {
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
           </div>
         ) : (
-          <div className="max-w-4xl mx-auto">
-            <div
-              className="glass-card p-8 md:p-12"
-              style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? "translateY(0)" : "translateY(32px)",
-                transition: "all 0.7s cubic-bezier(.16,1,.3,1) 0.1s",
-                borderColor: "rgba(255,255,255,0.07)",
-              }}
-            >
-              <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-                {skills.map((skill, index) => (
-                  <SkillBar
-                    key={skill.id || skill.name}
-                    name={skill.name}
-                    level={skill.level}
-                    category={skill.category}
-                    index={index}
+          <TooltipProvider>
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {groups.map((g, i) => (
+                  <CategoryCard
+                    key={g.category}
+                    category={g.category}
+                    items={g.items}
+                    index={i}
+                    visible={visible}
+                  />
+                ))}
+              </div>
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-3 gap-4 mt-8">
+                {stats.map((stat, i) => (
+                  <StatCard
+                    key={stat.label}
+                    value={stat.value}
+                    label={stat.label}
+                    index={i}
+                    visible={visible}
                   />
                 ))}
               </div>
             </div>
-
-            {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-4 mt-8">
-              {stats.map((stat, i) => (
-                <StatCard
-                  key={stat.label}
-                  value={stat.value}
-                  label={stat.label}
-                  index={i}
-                  visible={visible}
-                />
-              ))}
-            </div>
-          </div>
+          </TooltipProvider>
         )}
       </div>
     </section>
