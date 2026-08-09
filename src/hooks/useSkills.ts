@@ -69,6 +69,21 @@ export const useSkills = () => {
   }, []);
 
   const addSkill = async (skill: Omit<Skill, "id" | "created_at" | "updated_at">) => {
+    // Prevent accidental duplicates: same skill name within the same category
+    const isDuplicate = skills.some(
+      s =>
+        s.name.trim().toLowerCase() === skill.name.trim().toLowerCase() &&
+        s.category === skill.category
+    );
+    if (isDuplicate) {
+      toast({
+        title: "Duplicate skill",
+        description: `"${skill.name}" already exists in ${skill.category}.`,
+        variant: "destructive",
+      });
+      return null;
+    }
+
     const newSkill: Skill = { ...skill, id: Date.now().toString() };
     try {
       const { data, error } = await supabase
