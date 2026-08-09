@@ -1441,13 +1441,9 @@ PHP" />
                       <Select value={skillCategory} onValueChange={setSkillCategory}>
                         <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Frontend">Frontend</SelectItem>
-                          <SelectItem value="Backend">Backend</SelectItem>
-                          <SelectItem value="Languages">Languages</SelectItem>
-                          <SelectItem value="Database">Database</SelectItem>
-                          <SelectItem value="AI/ML">AI/ML</SelectItem>
-                          <SelectItem value="Tools">Tools</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          {SKILL_CATEGORY_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
