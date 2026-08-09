@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSkills, Skill } from "@/hooks/useSkills";
-import { Loader2 } from "lucide-react";
+import { useProjects } from "@/hooks/useProjects";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { categoryLabel, categoryRank } from "@/lib/skillCategories";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const AUTO_INTERVAL = 5000;
+const RESUME_DELAY = 12000;
 
 /* Animated counter hook */
 const useCounter = (target: number, duration: number, start: boolean) => {
@@ -22,69 +25,41 @@ const useCounter = (target: number, duration: number, start: boolean) => {
   return count;
 };
 
-/* Compact skill badge with proficiency tooltip */
-const SkillBadge = ({ skill }: { skill: Skill }) => (
-  <Tooltip delayDuration={120}>
-    <TooltipTrigger asChild>
+/* A single skill row: name + percentage + glowing progress bar */
+const SkillRow = ({ skill, index, animate }: { skill: Skill; index: number; animate: boolean }) => (
+  <div className="w-full">
+    <div className="flex items-baseline justify-between gap-4 mb-2">
       <span
-        className="px-3 py-1.5 rounded-full text-sm font-medium cursor-default transition-all duration-300 hover:-translate-y-0.5"
-        style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          background: "hsl(199,89%,48%,0.07)",
-          border: "1px solid hsl(199,89%,48%,0.22)",
-          color: "rgba(255,255,255,0.85)",
-        }}
+        className="font-medium text-sm md:text-base text-white/90 break-words"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
       >
         {skill.name}
       </span>
-    </TooltipTrigger>
-    <TooltipContent>Proficiency: {skill.level}%</TooltipContent>
-  </Tooltip>
-);
-
-/* One card per category */
-const CategoryCard = ({
-  category,
-  items,
-  index,
-  visible,
-}: {
-  category: string;
-  items: Skill[];
-  index: number;
-  visible: boolean;
-}) => (
-  <div
-    className="glass-card p-6 md:p-7"
-    style={{
-      borderColor: "rgba(255,255,255,0.07)",
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(28px)",
-      transition: `all 0.6s cubic-bezier(.16,1,.3,1) ${0.08 + index * 0.07}s`,
-    }}
-  >
-    <div className="flex items-center justify-between gap-3 mb-5">
-      <h3
-        className="font-bold text-lg text-white"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
-        {categoryLabel(category)}
-      </h3>
       <span
-        className="px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0"
-        style={{
-          background: "hsl(199,89%,48%,0.1)",
-          color: "hsl(199,89%,60%)",
-          border: "1px solid hsl(199,89%,48%,0.2)",
-        }}
+        className="text-sm font-semibold shrink-0"
+        style={{ color: "hsl(199,89%,60%)", fontFamily: "'Space Grotesk', sans-serif" }}
       >
-        {items.length}
+        {skill.level}%
       </span>
     </div>
-    <div className="flex flex-wrap gap-2">
-      {items.map((s) => (
-        <SkillBadge key={s.id || `${category}-${s.name}`} skill={s} />
-      ))}
+    <div
+      className="h-2 w-full rounded-full overflow-hidden"
+      style={{ background: "rgba(255,255,255,0.06)" }}
+      role="progressbar"
+      aria-label={skill.name}
+      aria-valuenow={skill.level}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: animate ? `${Math.min(Math.max(skill.level, 0), 100)}%` : "0%",
+          background: "linear-gradient(90deg, hsl(199,89%,48%), hsl(186,90%,58%))",
+          boxShadow: "0 0 12px hsl(199,89%,48%,0.55)",
+          transition: `width 0.9s cubic-bezier(.16,1,.3,1) ${0.05 + index * 0.06}s`,
+        }}
+      />
     </div>
   </div>
 );
@@ -127,8 +102,13 @@ const StatCard = ({
 
 const Skills = () => {
   const { skills, loading } = useSkills();
+  const { projects } = useProjects();
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [fadeIn, setFadeIn] = useState(true);
+  const resumeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -162,10 +142,58 @@ const Skills = () => {
       );
   }, [skills]);
 
+  const total = groups.length;
+  const safeActive = total > 0 ? active % total : 0;
+  const current = groups[safeActive];
+
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  /* Manual interaction pauses auto-rotation, resumes after inactivity */
+  const interact = useCallback(() => {
+    setPaused(true);
+    if (resumeRef.current) window.clearTimeout(resumeRef.current);
+    resumeRef.current = window.setTimeout(() => setPaused(false), RESUME_DELAY);
+  }, []);
+
+  const goTo = useCallback(
+    (index: number, manual = true) => {
+      if (manual) interact();
+      setFadeIn(false);
+      window.setTimeout(() => {
+        setActive(index);
+        setFadeIn(true);
+      }, reducedMotion ? 0 : 180);
+    },
+    [interact, reducedMotion]
+  );
+
+  const next = useCallback(
+    (manual = true) => {
+      if (total === 0) return;
+      goTo((safeActive + 1) % total, manual);
+    },
+    [goTo, safeActive, total]
+  );
+
+  const prev = useCallback(() => {
+    if (total === 0) return;
+    goTo((safeActive - 1 + total) % total);
+  }, [goTo, safeActive, total]);
+
+  useEffect(() => {
+    if (paused || total < 2 || !visible) return;
+    const id = window.setInterval(() => next(false), AUTO_INTERVAL);
+    return () => window.clearInterval(id);
+  }, [paused, total, visible, next]);
+
+  useEffect(() => () => { if (resumeRef.current) window.clearTimeout(resumeRef.current); }, []);
+
   const stats = [
-    { value: `${skills.length > 0 ? skills.length : 16}+`, label: "Skills Mastered" },
-    { value: `${groups.length > 0 ? groups.length : 8}`, label: "Skill Areas" },
-    { value: "8+", label: "Projects Built" },
+    { value: `${skills.length}`, label: skills.length === 1 ? "Skill" : "Skills" },
+    { value: `${total}`, label: "Skill Areas" },
+    { value: `${projects.length}`, label: "Projects Built" },
   ];
 
   return (
@@ -218,34 +246,126 @@ const Skills = () => {
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(199,89%,48%)" }} />
           </div>
         ) : (
-          <TooltipProvider>
-            <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {groups.map((g, i) => (
-                  <CategoryCard
-                    key={g.category}
-                    category={g.category}
-                    items={g.items}
-                    index={i}
-                    visible={visible}
-                  />
-                ))}
-              </div>
+          <div className="max-w-3xl mx-auto">
+            {/* Skills Showcase — one category at a time */}
+            <div
+              className="glass-card p-6 md:p-9"
+              style={{
+                borderColor: "rgba(255,255,255,0.07)",
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(28px)",
+                transition: "all 0.6s cubic-bezier(.16,1,.3,1) 0.08s",
+              }}
+              onMouseEnter={interact}
+              role="region"
+              aria-label="Skills by category"
+              aria-live="polite"
+            >
+              {!current ? (
+                <p className="text-center text-white/40 py-10">No skills added yet.</p>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      opacity: fadeIn ? 1 : 0,
+                      transform: fadeIn ? "translateY(0)" : "translateY(8px)",
+                      transition: reducedMotion ? "none" : "all 0.35s ease-out",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-7">
+                      <h3
+                        className="font-bold text-xl md:text-2xl text-white"
+                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                      >
+                        {categoryLabel(current.category)}
+                      </h3>
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-semibold shrink-0"
+                        style={{
+                          background: "hsl(199,89%,48%,0.1)",
+                          color: "hsl(199,89%,60%)",
+                          border: "1px solid hsl(199,89%,48%,0.2)",
+                        }}
+                        aria-label={`${current.items.length} skills in this category`}
+                      >
+                        {current.items.length}
+                      </span>
+                    </div>
 
-              {/* Stat cards */}
-              <div className="grid grid-cols-3 gap-4 mt-8">
-                {stats.map((stat, i) => (
-                  <StatCard
-                    key={stat.label}
-                    value={stat.value}
-                    label={stat.label}
-                    index={i}
-                    visible={visible}
-                  />
-                ))}
-              </div>
+                    <div className="space-y-5">
+                      {current.items.map((s, i) => (
+                        <SkillRow
+                          key={s.id || `${current.category}-${s.name}`}
+                          skill={s}
+                          index={i}
+                          animate={visible && fadeIn}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Navigation */}
+                  <div className="mt-8 pt-6" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div className="flex items-center justify-between gap-4">
+                      <button
+                        type="button"
+                        onClick={prev}
+                        aria-label="Previous skill category"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm text-white/70 hover:text-white transition-colors"
+                        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Previous
+                      </button>
+
+                      <div className="flex items-center gap-2" role="tablist" aria-label="Skill categories">
+                        {groups.map((g, i) => (
+                          <button
+                            key={g.category}
+                            type="button"
+                            role="tab"
+                            aria-selected={i === safeActive}
+                            aria-label={`Show ${categoryLabel(g.category)}`}
+                            onClick={() => goTo(i)}
+                            className="rounded-full transition-all duration-300"
+                            style={{
+                              width: i === safeActive ? 22 : 8,
+                              height: 8,
+                              background:
+                                i === safeActive ? "hsl(199,89%,55%)" : "rgba(255,255,255,0.2)",
+                              boxShadow: i === safeActive ? "0 0 10px hsl(199,89%,48%,0.6)" : "none",
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => next()}
+                        aria-label="Next skill category"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm text-white/70 hover:text-white transition-colors"
+                        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        Next <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </TooltipProvider>
+
+            {/* Stat cards (dynamic) */}
+            <div className="grid grid-cols-3 gap-4 mt-8">
+              {stats.map((stat, i) => (
+                <StatCard
+                  key={stat.label}
+                  value={stat.value}
+                  label={stat.label}
+                  index={i}
+                  visible={visible}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </section>
