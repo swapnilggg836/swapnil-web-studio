@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSkills, Skill } from "@/hooks/useSkills";
-import { Loader2 } from "lucide-react";
+import { useProjects } from "@/hooks/useProjects";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { categoryLabel, categoryRank } from "@/lib/skillCategories";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const AUTO_INTERVAL = 5000;
+const RESUME_DELAY = 12000;
 
 /* Animated counter hook */
 const useCounter = (target: number, duration: number, start: boolean) => {
@@ -22,69 +25,41 @@ const useCounter = (target: number, duration: number, start: boolean) => {
   return count;
 };
 
-/* Compact skill badge with proficiency tooltip */
-const SkillBadge = ({ skill }: { skill: Skill }) => (
-  <Tooltip delayDuration={120}>
-    <TooltipTrigger asChild>
+/* A single skill row: name + percentage + glowing progress bar */
+const SkillRow = ({ skill, index, animate }: { skill: Skill; index: number; animate: boolean }) => (
+  <div className="w-full">
+    <div className="flex items-baseline justify-between gap-4 mb-2">
       <span
-        className="px-3 py-1.5 rounded-full text-sm font-medium cursor-default transition-all duration-300 hover:-translate-y-0.5"
-        style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          background: "hsl(199,89%,48%,0.07)",
-          border: "1px solid hsl(199,89%,48%,0.22)",
-          color: "rgba(255,255,255,0.85)",
-        }}
+        className="font-medium text-sm md:text-base text-white/90 break-words"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
       >
         {skill.name}
       </span>
-    </TooltipTrigger>
-    <TooltipContent>Proficiency: {skill.level}%</TooltipContent>
-  </Tooltip>
-);
-
-/* One card per category */
-const CategoryCard = ({
-  category,
-  items,
-  index,
-  visible,
-}: {
-  category: string;
-  items: Skill[];
-  index: number;
-  visible: boolean;
-}) => (
-  <div
-    className="glass-card p-6 md:p-7"
-    style={{
-      borderColor: "rgba(255,255,255,0.07)",
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(28px)",
-      transition: `all 0.6s cubic-bezier(.16,1,.3,1) ${0.08 + index * 0.07}s`,
-    }}
-  >
-    <div className="flex items-center justify-between gap-3 mb-5">
-      <h3
-        className="font-bold text-lg text-white"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
-        {categoryLabel(category)}
-      </h3>
       <span
-        className="px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0"
-        style={{
-          background: "hsl(199,89%,48%,0.1)",
-          color: "hsl(199,89%,60%)",
-          border: "1px solid hsl(199,89%,48%,0.2)",
-        }}
+        className="text-sm font-semibold shrink-0"
+        style={{ color: "hsl(199,89%,60%)", fontFamily: "'Space Grotesk', sans-serif" }}
       >
-        {items.length}
+        {skill.level}%
       </span>
     </div>
-    <div className="flex flex-wrap gap-2">
-      {items.map((s) => (
-        <SkillBadge key={s.id || `${category}-${s.name}`} skill={s} />
-      ))}
+    <div
+      className="h-2 w-full rounded-full overflow-hidden"
+      style={{ background: "rgba(255,255,255,0.06)" }}
+      role="progressbar"
+      aria-label={skill.name}
+      aria-valuenow={skill.level}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: animate ? `${Math.min(Math.max(skill.level, 0), 100)}%` : "0%",
+          background: "linear-gradient(90deg, hsl(199,89%,48%), hsl(186,90%,58%))",
+          boxShadow: "0 0 12px hsl(199,89%,48%,0.55)",
+          transition: `width 0.9s cubic-bezier(.16,1,.3,1) ${0.05 + index * 0.06}s`,
+        }}
+      />
     </div>
   </div>
 );
