@@ -161,7 +161,7 @@ const TechnologyTools = () => {
         .order("display_order", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        setTechCategories(data as TechCategory[]);
+        setTechCategories(data as unknown as TechCategory[]);
         setActiveCategory(data[0].id);
       } else {
         setTechCategories(fallbackCategories);
