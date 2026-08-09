@@ -10,9 +10,10 @@ import { useProfileInfo } from "@/hooks/useProfileInfo";
 import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
 import { useAchievements, Achievement } from "@/hooks/useAchievements";
 import { useSkills, Skill } from "@/hooks/useSkills";
+import { SKILL_CATEGORY_OPTIONS } from "@/lib/skillCategories";
 import { ImageCropperModal } from "@/components/ImageCropperModal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1441,13 +1442,9 @@ PHP" />
                       <Select value={skillCategory} onValueChange={setSkillCategory}>
                         <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Frontend">Frontend</SelectItem>
-                          <SelectItem value="Backend">Backend</SelectItem>
-                          <SelectItem value="Languages">Languages</SelectItem>
-                          <SelectItem value="Database">Database</SelectItem>
-                          <SelectItem value="AI/ML">AI/ML</SelectItem>
-                          <SelectItem value="Tools">Tools</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          {SKILL_CATEGORY_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

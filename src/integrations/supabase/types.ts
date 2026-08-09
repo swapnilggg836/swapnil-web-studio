@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          date: string
+          description: string
+          display_order: number
+          gallery_urls: string[]
+          id: string
+          image_url: string | null
+          issuer: string
+          link_url: string | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          display_order?: number
+          gallery_urls?: string[]
+          id?: string
+          image_url?: string | null
+          issuer?: string
+          link_url?: string | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          display_order?: number
+          gallery_urls?: string[]
+          id?: string
+          image_url?: string | null
+          issuer?: string
+          link_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string
@@ -142,12 +190,11 @@ export type Database = {
           github_link: string | null
           id: string
           image_url: string | null
-          images?: string[] | null
-          video_url?: string | null
           live_link: string | null
           tech_stack: string
           title: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           created_at?: string
@@ -156,12 +203,11 @@ export type Database = {
           github_link?: string | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
-          video_url?: string | null
           live_link?: string | null
           tech_stack: string
           title: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           created_at?: string
@@ -170,12 +216,11 @@ export type Database = {
           github_link?: string | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
-          video_url?: string | null
           live_link?: string | null
           tech_stack?: string
           title?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -199,6 +244,39 @@ export type Database = {
           file_name?: string
           file_url?: string
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          category: string
+          created_at: string
+          display_order: number
+          icon: string | null
+          id: string
+          level: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          level?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          level?: number
+          name?: string
           updated_at?: string
         }
         Relationships: []
