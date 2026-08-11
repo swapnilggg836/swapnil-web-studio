@@ -419,15 +419,11 @@ const ProjectCard = ({
         transition: `opacity 0.65s cubic-bezier(.16,1,.3,1) ${(index % 3) * 90}ms, transform 0.65s cubic-bezier(.16,1,.3,1) ${(index % 3) * 90}ms`,
       }}
     >
-      {isFlagship ? (
-        <div className="rainbow-border-wrap h-full">
-          <div className="rounded-2xl overflow-hidden h-full" style={{ background: "#0d0d0d" }}>
-            {cardInner}
-          </div>
+      <div className="rainbow-border-wrap h-full">
+        <div className="rounded-2xl overflow-hidden h-full" style={{ background: "#0d0d0d" }}>
+          {cardInner}
         </div>
-      ) : (
-        cardInner
-      )}
+      </div>
     </div>
   );
 };
