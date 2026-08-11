@@ -1425,7 +1425,7 @@ PHP" />
                       <Input value={skillName} onChange={(e) => setSkillName(e.target.value)} placeholder="e.g. React.js, Python, C++" required />
                     </div>
                     <div>
-                      <Label>Proficiency Level (%) * ({skillLevel}%)</Label>
+                      <Label>Proficiency Level (%) — {skillLevel}%</Label>
                       <div className="flex items-center gap-3">
                         <Input
                           type="number"

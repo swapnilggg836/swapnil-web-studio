@@ -2,12 +2,12 @@
 export const SKILL_CATEGORY_ORDER = [
   "Frontend",
   "Backend",
-  "Programming",
   "Database",
   "AI/ML",
   "GenAI",
   "Data Science",
   "DevOps/Tools",
+  "Programming",
   "Other",
 ] as const;
 
