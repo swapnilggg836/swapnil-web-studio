@@ -38,7 +38,10 @@ export const fallbackProjects: Project[] = [
   { id: "8", title: "Smart Rover", image_url: smartRoverImg, images: [smartRoverImg], video_url: null, description: ["Arduino-based rover for competitions", "Ultrasonic & Color sensors integrated", "Obstacle detection and automation"], tech_stack: "Arduino, C++, IoT", github_link: "https://github.com/swapnilggg836/smart-rover", live_link: "", display_order: 7 },
 ];
 
-const LOCAL_STORAGE_KEY = "portfolio_projects_v1";
+const clean = (p: Partial<Project>) => {
+  const { id, created_at, updated_at, ...rest } = p as Project;
+  return rest;
+};
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,35 +50,18 @@ export const useProjects = () => {
 
   const fetchProjects = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("display_order", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        setProjects(data as Project[]);
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-      } else {
-        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (localData !== null) {
-          setProjects(JSON.parse(localData));
-        } else {
-          setProjects(fallbackProjects);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackProjects));
-        }
-      }
-    } catch {
-      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (localData !== null) {
-        setProjects(JSON.parse(localData));
-      } else {
-        setProjects(fallbackProjects);
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackProjects));
-      }
-    } finally {
-      setLoading(false);
+    localStorage.removeItem("portfolio_projects_v1");
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("display_order", { ascending: true });
+    if (error) {
+      console.error(error);
+      setProjects(fallbackProjects);
+    } else {
+      setProjects(data && data.length > 0 ? (data as Project[]) : fallbackProjects);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -83,67 +69,39 @@ export const useProjects = () => {
   }, []);
 
   const addProject = async (project: Omit<Project, "id" | "created_at" | "updated_at">) => {
-    const newProj: Project = { ...project, id: Date.now().toString() };
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .insert(project)
-        .select()
-        .single();
-
-      if (!error && data) {
-        newProj.id = data.id;
-      }
-    } catch (err) {
-      console.warn("Supabase add project warning, saving locally.");
+    const { data, error } = await supabase.from("projects").insert(clean(project) as any).select().single();
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return null;
     }
-
-    setProjects(prev => {
-      const updated = [newProj, ...prev];
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-
+    await fetchProjects();
     toast({ title: "Success", description: "Project added successfully!" });
-    return newProj;
+    return data as Project;
   };
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
-    try {
-      await supabase
-        .from("projects")
-        .update(updates)
-        .eq("id", id);
-    } catch (err) {
-      console.warn("Supabase update project warning, updating locally.");
+    if (fallbackProjects.some(f => f.id === id)) {
+      // Built-in sample project: save it to the database as a new record
+      const base = fallbackProjects.find(f => f.id === id)!;
+      return !!(await addProject({ ...base, ...updates } as any));
     }
-
-    setProjects(prev => {
-      const updated = prev.map(p => (p.id === id ? { ...p, ...updates } : p));
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-
+    const { error } = await supabase.from("projects").update(clean(updates) as any).eq("id", id);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+      return false;
+    }
+    await fetchProjects();
     toast({ title: "Success", description: "Project updated successfully!" });
     return true;
   };
 
   const deleteProject = async (id: string) => {
-    try {
-      await supabase
-        .from("projects")
-        .delete()
-        .eq("id", id);
-    } catch (err) {
-      console.warn("Supabase delete project warning, removing locally.");
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return false;
     }
-
-    setProjects(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-
+    await fetchProjects();
     toast({ title: "Success", description: "Project deleted!" });
     return true;
   };
