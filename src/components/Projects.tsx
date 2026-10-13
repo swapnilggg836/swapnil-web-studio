@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ExternalLink, Github, Loader2, ChevronLeft, ChevronRight, Video, Play, Image as ImageIcon } from "lucide-react";
+import { ExternalLink, Github, Loader2, ChevronLeft, ChevronRight, Video, Image as ImageIcon, Maximize2 } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
+import { getVideoSource } from "@/lib/media";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import tourTravelImg from "@/assets/tour-travel.jpg";
 import digitalBoardImg from "@/assets/digital-board.jpg";
@@ -37,8 +40,19 @@ const fallbackProjects: ProjectItem[] = [
 /* ====================================================
    IMAGE CAROUSEL — handles 1 or many images
    ==================================================== */
-const ImageCarousel = ({ images, title }: { images: string[]; title: string }) => {
-  const [activeIdx, setActiveIdx] = useState(0);
+const ImageCarousel = ({
+  images,
+  title,
+  activeIdx,
+  setActiveIdx,
+  onOpen,
+}: {
+  images: string[];
+  title: string;
+  activeIdx: number;
+  setActiveIdx: (index: number) => void;
+  onOpen: () => void;
+}) => {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Auto-advance when multiple images
@@ -59,20 +73,23 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
   const next = (e: React.MouseEvent) => goTo((activeIdx + 1) % images.length, e);
 
   return (
-    <div className="relative w-full overflow-hidden group/img" style={{ height: "200px" }}>
+    <div className="relative h-[200px] w-full overflow-hidden group/img">
       {images.map((src, i) => (
-        <img
+        <button
           key={i}
-          src={src}
-          alt={`${title} screenshot ${i + 1}`}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{
-            opacity: i === activeIdx ? 1 : 0,
-            transform: i === activeIdx ? "scale(1)" : "scale(1.04)",
-            transition: "opacity 0.7s ease, transform 1s ease",
-          }}
-          loading="lazy"
-        />
+          type="button"
+          onClick={onOpen}
+          aria-label={`Open ${title} photo ${i + 1} in the viewer`}
+          tabIndex={i === activeIdx ? 0 : -1}
+          className={`absolute inset-0 h-full w-full cursor-zoom-in transition-opacity duration-700 ${i === activeIdx ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          <img
+            src={src}
+            alt={`${title} screenshot ${i + 1}`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        </button>
       ))}
 
       {/* Gradient overlay */}
@@ -86,6 +103,8 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
         <>
           <button
             onClick={prev}
+            type="button"
+            aria-label="Previous photo"
             className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           >
@@ -93,6 +112,8 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
           </button>
           <button
             onClick={next}
+            type="button"
+            aria-label="Next photo"
             className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           >
@@ -104,7 +125,10 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
             {images.map((_, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={e => goTo(i, e)}
+                aria-label={`Show photo ${i + 1}`}
+                aria-current={i === activeIdx}
                 style={{
                   height: "5px",
                   borderRadius: "9999px",
@@ -124,87 +148,158 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
 };
 
 /* ====================================================
-   MEDIA VIEWER — Video + Multi-Image support
+   MEDIA VIEWER — inline preview plus large photo/video viewer
    ==================================================== */
-const parseEmbedVideo = (url?: string | null) => {
-  if (!url || !url.trim()) return null;
-  const trimmed = url.trim();
-
-  // YouTube
-  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-  if (ytMatch && ytMatch[1]) {
-    return { type: "iframe", src: `https://www.youtube.com/embed/${ytMatch[1]}` };
-  }
-
-  // Vimeo
-  const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vimeoMatch && vimeoMatch[1]) {
-    return { type: "iframe", src: `https://player.vimeo.com/video/${vimeoMatch[1]}` };
-  }
-
-  return { type: "video", src: trimmed };
-};
-
 const MediaViewer = ({ images, videoUrl, title }: { images: string[]; videoUrl?: string | null; title: string }) => {
-  const videoData = parseEmbedVideo(videoUrl);
-  const [activeMedia, setActiveMedia] = useState<"video" | "images">(videoData ? "video" : "images");
+  const videoData = getVideoSource(videoUrl);
+  const [activeMedia, setActiveMedia] = useState<"video" | "images">("images");
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const renderVideo = (large = false) => {
+    if (!videoData) return null;
+    if (videoData.type === "iframe") {
+      return (
+        <iframe
+          src={videoData.src}
+          title={`${title} demo video`}
+          className="h-full w-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+        />
+      );
+    }
+    return (
+      <video
+        src={videoData.src}
+        controls
+        playsInline
+        className={`h-full w-full ${large ? "object-contain" : "object-cover"}`}
+      />
+    );
+  };
+
+  const openViewer = (media: "video" | "images") => {
+    setActiveMedia(media);
+    setViewerOpen(true);
+  };
+
+  const stepImage = (delta: number) => {
+    setActiveIdx((index) => (index + delta + images.length) % images.length);
+  };
 
   return (
-    <div className="relative w-full overflow-hidden group/media" style={{ height: "200px" }}>
+    <>
+    <div className="relative h-[200px] w-full overflow-hidden group/media">
       {activeMedia === "video" && videoData ? (
-        <div className="w-full h-full bg-black relative flex items-center justify-center">
-          {videoData.type === "iframe" ? (
-            <iframe
-              src={videoData.src}
-              title={`${title} demo video`}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <video
-              src={videoData.src}
-              controls
-              playsInline
-              muted
-              autoPlay
-              loop
-              className="w-full h-full object-cover"
-            />
-          )}
+        <div className="relative flex h-full w-full items-center justify-center bg-background">
+          {renderVideo()}
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            aria-label={`Open ${title} video in large viewer`}
+            title="Expand video"
+            className="absolute right-2 bottom-2 z-10 h-9 w-9 opacity-90"
+            onClick={() => openViewer("video")}
+          >
+            <Maximize2 />
+          </Button>
         </div>
       ) : (
-        <ImageCarousel images={images} title={title} />
+        <ImageCarousel
+          images={images}
+          title={title}
+          activeIdx={activeIdx}
+          setActiveIdx={setActiveIdx}
+          onOpen={() => openViewer("images")}
+        />
       )}
 
       {/* Switcher toggle if both video and images exist */}
       {videoData && images.length > 0 && (
-        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-black/70 backdrop-blur-md p-1 rounded-full border border-white/10">
-          <button
+        <div className="absolute top-2 left-2 z-20 flex gap-1 rounded-full border border-white/10 bg-background/90 p-1 backdrop-blur-md">
+          <Button
             type="button"
             onClick={(e) => { e.stopPropagation(); setActiveMedia("video"); }}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 transition-all ${
+            size="sm"
+            variant={activeMedia === "video" ? "default" : "ghost"}
+            className={`h-7 rounded-full px-2 text-[10px] font-semibold ${
               activeMedia === "video"
-                ? "bg-red-600 text-white shadow"
-                : "text-white/70 hover:text-white"
+                ? "shadow"
+                : "text-foreground"
             }`}
           >
             <Video size={11} /> Video
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={(e) => { e.stopPropagation(); setActiveMedia("images"); }}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 transition-all ${
-              activeMedia === "images"
-                ? "bg-cyan-500 text-white shadow"
-                : "text-white/70 hover:text-white"
-            }`}
+            size="sm"
+            variant={activeMedia === "images" ? "default" : "ghost"}
+            className="h-7 rounded-full px-2 text-[10px] font-semibold"
           >
             <ImageIcon size={11} /> Photos ({images.length})
-          </button>
+          </Button>
         </div>
       )}
     </div>
+    <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-6xl overflow-y-auto border-border bg-background p-4 sm:p-6">
+        <DialogHeader className="pr-8">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{activeMedia === "video" ? "Project video" : `Photo ${activeIdx + 1} of ${images.length}`}</DialogDescription>
+        </DialogHeader>
+        {videoData && (
+          <div className="flex gap-2 border-b border-border pb-3">
+            <Button type="button" size="sm" variant={activeMedia === "images" ? "default" : "outline"} onClick={() => setActiveMedia("images")}>
+              <ImageIcon /> Photos ({images.length})
+            </Button>
+            <Button type="button" size="sm" variant={activeMedia === "video" ? "default" : "outline"} onClick={() => setActiveMedia("video")}>
+              <Video /> Video
+            </Button>
+          </div>
+        )}
+        {activeMedia === "video" && videoData ? (
+          <div className="mx-auto aspect-video max-h-[72dvh] w-full overflow-hidden rounded-md bg-background">
+            {renderVideo(true)}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="relative mx-auto flex h-[min(65dvh,760px)] w-full items-center justify-center overflow-hidden rounded-md bg-background">
+              <img src={images[activeIdx]} alt={`${title} photo ${activeIdx + 1}`} className="h-full w-full object-contain" />
+              {images.length > 1 && (
+                <>
+                  <Button type="button" variant="secondary" size="icon" aria-label="Previous photo" onClick={() => stepImage(-1)} className="absolute left-3 top-1/2 -translate-y-1/2">
+                    <ChevronLeft />
+                  </Button>
+                  <Button type="button" variant="secondary" size="icon" aria-label="Next photo" onClick={() => stepImage(1)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ChevronRight />
+                  </Button>
+                </>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="flex justify-center gap-2 overflow-x-auto py-1">
+                {images.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    aria-label={`Show photo ${index + 1}`}
+                    aria-current={index === activeIdx}
+                    onClick={() => setActiveIdx(index)}
+                    className={`h-14 w-20 shrink-0 overflow-hidden rounded-sm border-2 transition-colors ${index === activeIdx ? "border-primary" : "border-border"}`}
+                  >
+                    <img src={image} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
@@ -315,7 +410,7 @@ const ProjectCard = ({
 
         {/* Number badge */}
         <div
-          className="absolute top-4 left-4 font-black text-4xl leading-none select-none pointer-events-none"
+          className="absolute bottom-4 left-4 font-black text-4xl leading-none select-none pointer-events-none"
           style={{
             color: isFlagship ? "hsl(199,89%,48%)" : "rgba(255,255,255,0.12)",
             fontFamily: "'Space Grotesk', sans-serif",

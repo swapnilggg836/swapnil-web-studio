@@ -11,6 +11,7 @@ import { useSocialLinks, SocialLink } from "@/hooks/useSocialLinks";
 import { useAchievements, Achievement } from "@/hooks/useAchievements";
 import { useSkills, Skill } from "@/hooks/useSkills";
 import { SKILL_CATEGORY_OPTIONS } from "@/lib/skillCategories";
+import { getVideoSource } from "@/lib/media";
 import { ImageCropperModal } from "@/components/ImageCropperModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -984,6 +985,7 @@ const AdminDashboard = () => {
                     {/* Video Demo Section */}
                     <div className="space-y-2 border p-3 rounded-lg bg-card/50">
                       <Label className="flex items-center gap-1.5 font-medium"><Video className="w-4 h-4 text-primary" /> Project Video Demo (Upload or Link)</Label>
+                      <p className="text-xs text-muted-foreground">Google Drive videos must be shared with “Anyone with the link.”</p>
                       <Input type="file" accept="video/*" onChange={handleProjectVideoFileChange} className="text-xs" />
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground shrink-0">Video URL:</span>
@@ -994,7 +996,7 @@ const AdminDashboard = () => {
                             if (e.target.value.trim()) setProjectVideoPreview(e.target.value.trim());
                             else setProjectVideoPreview(null);
                           }}
-                          placeholder="https://youtube.com/watch?v=... or direct .mp4 link"
+                          placeholder="YouTube, Google Drive, Vimeo, or .mp4 link"
                           className="text-xs"
                         />
                       </div>
@@ -1002,15 +1004,15 @@ const AdminDashboard = () => {
                       {projectVideoPreview && (
                         <div className="mt-2 relative rounded-lg overflow-hidden border border-border bg-black p-2">
                           <Label className="text-xs text-muted-foreground mb-1 block">Video Preview:</Label>
-                          {projectVideoPreview.includes("youtube.com") || projectVideoPreview.includes("youtu.be") ? (
+                          {getVideoSource(projectVideoPreview)?.type === "iframe" ? (
                             <iframe
-                              src={projectVideoPreview.replace("watch?v=", "embed/")}
+                              src={getVideoSource(projectVideoPreview)?.src}
                               className="w-full h-44 rounded-lg"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                               allowFullScreen
                             />
                           ) : (
-                            <video src={projectVideoPreview} controls className="w-full max-h-48 rounded-lg" />
+                            <video src={getVideoSource(projectVideoPreview)?.src} controls playsInline className="w-full max-h-48 rounded-lg" />
                           )}
                           <Button
                             type="button"
