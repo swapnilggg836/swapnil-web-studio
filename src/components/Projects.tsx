@@ -59,10 +59,10 @@ const ImageCarousel = ({
   useEffect(() => {
     if (images.length <= 1) return;
     timerRef.current = setTimeout(() => {
-      setActiveIdx(i => (i + 1) % images.length);
+      setActiveIdx((activeIdx + 1) % images.length);
     }, 3200);
     return () => clearTimeout(timerRef.current);
-  }, [activeIdx, images.length]);
+  }, [activeIdx, images.length, setActiveIdx]);
 
   const goTo = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
