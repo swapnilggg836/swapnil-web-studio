@@ -1,0 +1,1 @@
+- Keep shared media URL parsing in `src/lib/media.ts` so project and admin previews treat Drive, YouTube, Vimeo, and direct video links consistently.
